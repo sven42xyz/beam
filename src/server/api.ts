@@ -57,9 +57,43 @@ function sanitizeFilename(raw: string | null): string {
 
 // ---------- Handler ----------
 
+/**
+ * Prüft das Turnstile-Token. Ohne konfigurierte Keys (Site Key + Secret) ist Turnstile deaktiviert.
+ * Docs: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+ */
+async function verifyTurnstile(env: Env, token: unknown, ip: string): Promise<boolean> {
+  const secret = env.TURNSTILE_SECRET_KEY;
+  if (!secret || !env.TURNSTILE_SITE_KEY) return true;
+  if (typeof token !== 'string' || !token || token.length > 2048) return false;
+
+  const body = new FormData();
+  body.append('secret', secret);
+  body.append('response', token);
+  body.append('remoteip', ip);
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body });
+    const outcome = (await res.json()) as { success: boolean; action?: string; 'error-codes'?: string[] };
+    if (!outcome.success) console.warn('turnstile rejected', outcome['error-codes']);
+    return outcome.success && (outcome.action === undefined || outcome.action === 'create_room');
+  } catch (e) {
+    console.error('turnstile verify failed', e);
+    return false;
+  }
+}
+
 async function createRoom(request: Request, env: Env) {
   const limited = await rateLimited(env.RL_CREATE, request);
   if (limited) return limited;
+
+  let body: { turnstileToken?: unknown } = {};
+  try {
+    body = await request.json();
+  } catch {
+    // leerer Body ist ok, solange Turnstile nicht aktiv ist
+  }
+  if (!(await verifyTurnstile(env, body.turnstileToken, clientIp(request)))) {
+    return error(403, 'captcha_failed', 'Turnstile verification failed.');
+  }
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateCode();

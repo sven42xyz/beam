@@ -1,0 +1,45 @@
+---
+import { LANGS } from '../i18n';
+
+const { lang } = Astro.locals;
+const label = lang === 'de' ? 'Sprache' : 'Language';
+---
+
+<nav class="lang-switch" aria-label={label}>
+  {
+    LANGS.map((l) =>
+      l === lang ? (
+        <span aria-current="true">{l.toUpperCase()}</span>
+      ) : (
+        <a href={`?lang=${l}`} hreflang={l} lang={l}>
+          {l.toUpperCase()}
+        </a>
+      ),
+    )
+  }
+</nav>
+
+<style>
+  .lang-switch {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .lang-switch > * {
+    padding: 3px 9px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--muted);
+  }
+  .lang-switch a:hover {
+    color: var(--text);
+  }
+  .lang-switch [aria-current] {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+</style>

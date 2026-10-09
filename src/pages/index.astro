@@ -1,90 +1,237 @@
 ---
+import { env } from 'cloudflare:workers';
 import Base from '../layouts/Base.astro';
+import LangSwitch from '../components/LangSwitch.astro';
+import { useTranslations } from '../i18n';
 import { CODE_LENGTH } from '../shared/codes';
+import { REPO_URL, SUPPORT_URL } from '../shared/site';
 
-export const prerender = true;
+const { lang } = Astro.locals;
+const t = useTranslations(lang);
+const turnstileSiteKey = env.TURNSTILE_SITE_KEY || '';
+
+const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
 ---
 
-<Base title="Beam – Dateien & Text zwischen Geräten">
-  <main class="home">
-    <header class="hero">
-      <div class="logo" aria-hidden="true">
-        <svg viewBox="0 0 32 32" width="44" height="44"
-          ><path
-            d="M9 23 L23 9 M14 9 h9 v9"
-            stroke="currentColor"
-            stroke-width="3.2"
-            fill="none"
-            stroke-linecap="round"
-            stroke-linejoin="round"></path></svg
-        >
+<Base>
+  <div class="landing">
+    <nav class="nav">
+      <a href="/" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="18" height="18"
+            ><path
+              d="M9 23 L23 9 M14 9 h9 v9"
+              stroke="currentColor"
+              stroke-width="3.6"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path></svg
+          >
+        </span>
+        Beam
+      </a>
+      <div class="nav-right">
+        <a class="nav-link" href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
+        <LangSwitch />
       </div>
-      <h1>Beam</h1>
-      <p class="muted">Text, Links und Dateien sofort zwischen deinen Geräten teilen. Ohne Login.</p>
-    </header>
+    </nav>
 
-    <section class="card actions">
-      <button class="btn btn-primary btn-big" id="create">Raum erstellen</button>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow mono">{t.home.eyebrow}</p>
+        <h1>{t.home.headline}<br /><span class="accent">{t.home.headlineAccent}</span></h1>
+        <p class="lead">{t.home.lead}</p>
+      </div>
 
-      <div class="divider"><span>oder Code eingeben</span></div>
+      <div class="card actions" id="start" data-lang={lang} data-turnstile-sitekey={turnstileSiteKey}>
+        <button class="btn btn-primary btn-big js-create">{t.home.create}</button>
 
-      <form id="join" autocomplete="off">
-        <label for="code" class="sr-only">Raum-Code</label>
-        <input
-          id="code"
-          name="code"
-          class="code-input mono"
-          inputmode="text"
-          autocapitalize="characters"
-          spellcheck="false"
-          maxlength={CODE_LENGTH + 2}
-          placeholder="ABC234"
-          required
-        />
-        <button class="btn" type="submit">Beitreten</button>
-      </form>
-      <p class="error" id="error" role="alert" hidden></p>
+        <div class="divider"><span>{t.home.orEnterCode}</span></div>
+
+        <form id="join" autocomplete="off">
+          <label for="code" class="sr-only">{t.home.codeLabel}</label>
+          <input
+            id="code"
+            name="code"
+            class="code-input mono"
+            inputmode="text"
+            autocapitalize="characters"
+            spellcheck="false"
+            maxlength={CODE_LENGTH + 2}
+            placeholder="ABC234"
+            required
+          />
+          <button class="btn" type="submit">{t.home.join}</button>
+        </form>
+        <p class="error" id="error" role="alert" hidden></p>
+        {turnstileSiteKey && <div id="turnstile-widget" class="turnstile" />}
+        <p class="muted small note">{t.home.note}</p>
+      </div>
     </section>
 
-    <p class="muted footnote">Räume werden 24 Stunden nach der letzten Aktivität automatisch gelöscht.</p>
-  </main>
+    <section class="section" aria-labelledby="how">
+      <h2 id="how">{t.home.howTitle}</h2>
+      <ol class="steps">
+        {
+          t.home.steps.map((s, i) => (
+            <li class="step">
+              <span class="step-num mono">{i + 1}</span>
+              <div>
+                <h3>{s.title}</h3>
+                <p class="muted">{s.text}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <section class="section" aria-labelledby="features">
+      <h2 id="features">{t.home.featuresTitle}</h2>
+      <ul class="features">
+        {
+          featureIcons.map((icon) => (
+            <li class="feature card">
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  {icon === 'live' && <path d="M3 12h4l3-8 4 16 3-8h4" />}
+                  {icon === 'file' && <><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /></>}
+                  {icon === 'key' && <><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M17 6l3 3" /></>}
+                  {icon === 'clock' && <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>}
+                  {icon === 'copy' && <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></>}
+                  {icon === 'code' && <path d="M8 6l-6 6 6 6M16 6l6 6-6 6" />}
+                </svg>
+              </span>
+              <h3>{t.home.features[icon].title}</h3>
+              <p class="muted">{t.home.features[icon].text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="section" aria-labelledby="faq">
+      <h2 id="faq">{t.home.faqTitle}</h2>
+      <div class="faq">
+        {
+          t.home.faq.map((item) => (
+            <details>
+              <summary>{item.q}</summary>
+              <p class="muted">{item.a}</p>
+            </details>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="cta card">
+      <h2>{t.home.ctaTitle}</h2>
+      <button class="btn btn-primary btn-big js-create">{t.home.create}</button>
+    </section>
+
+    <footer class="footer muted small">
+      <span>{t.home.footer}</span>
+      <span class="footer-links">
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
+        {
+          SUPPORT_URL && (
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+              {t.home.support}
+            </a>
+          )
+        }
+      </span>
+    </footer>
+  </div>
 </Base>
 
 <style>
-  .home {
+  .landing {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 16px 32px;
+  }
+
+  /* ---------- Nav ---------- */
+  .nav {
     display: flex;
-    flex-direction: column;
-    gap: 24px;
-    padding-top: max(12vh, 32px);
-    max-width: 440px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0;
   }
-  .hero {
-    text-align: center;
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 19px;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: -0.01em;
   }
-  .logo {
-    display: inline-grid;
+  .brand-mark {
+    display: grid;
     place-items: center;
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--accent);
   }
-  h1 {
-    margin: 16px 0 4px;
-    font-size: 40px;
-    letter-spacing: -0.02em;
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
-  .hero p {
-    margin: 0 auto;
-    max-width: 32ch;
+  .nav-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .nav-link:hover {
+    color: var(--text);
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    display: grid;
+    /* minmax(0, …): sonst bestimmt die Eigenbreite des Code-Inputs die Spaltenbreite */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding: 32px 0 56px;
+  }
+  .eyebrow {
+    margin: 0 0 12px;
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(34px, 8vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .accent {
+    color: var(--accent);
+  }
+  .lead {
+    margin: 18px 0 0;
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 34em;
   }
   .actions {
     display: flex;
     flex-direction: column;
     gap: 16px;
     padding: 20px;
+    align-self: center;
+    scroll-margin-top: 24px;
   }
   .btn-big {
     min-height: 54px;
@@ -110,6 +257,7 @@ export const prerender = true;
   }
   .code-input {
     flex: 1;
+    width: 100%;
     min-width: 0;
     min-height: 48px;
     padding: 0 14px;
@@ -128,43 +276,231 @@ export const prerender = true;
     color: var(--danger);
     font-size: 14px;
   }
-  .footnote {
-    text-align: center;
+  .small {
     font-size: 13px;
+  }
+  .turnstile:empty {
+    display: none;
+  }
+  .note {
+    margin: 0;
+    text-align: center;
+  }
+
+  @media (min-width: 860px) {
+    .hero {
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      align-items: center;
+      gap: 56px;
+      padding: 72px 0 96px;
+    }
+  }
+
+  /* ---------- Sections ---------- */
+  .section {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+  }
+  h2 {
+    margin: 0 0 24px;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+  }
+  h3 {
+    margin: 0 0 4px;
+    font-size: 17px;
+  }
+  .section p {
+    margin: 0;
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 20px;
+  }
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  @media (min-width: 760px) {
+    .steps {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .step {
+      flex-direction: column;
+    }
+  }
+
+  .features {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 560px) {
+    .features {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 860px) {
+    .features {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .feature-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .faq {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 760px;
+  }
+  details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 16px;
+  }
+  summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 14px 0;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 1;
+  }
+  details[open] summary::after {
+    content: '−';
+  }
+  details p {
+    padding-bottom: 16px;
+  }
+
+  .cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin: 24px 0 8px;
+    padding: 36px 20px;
+    text-align: center;
+  }
+  .cta h2 {
+    margin: 0;
+  }
+  .cta .btn {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 24px 0 8px;
+  }
+  .footer-links {
+    display: flex;
+    gap: 16px;
+  }
+  .footer a {
+    color: var(--muted);
+  }
+  .footer a:hover {
+    color: var(--text);
   }
 </style>
 
 <script>
+  import { apiErrorMessage, isLang, useTranslations } from '../i18n';
   import { normalizeCode } from '../shared/codes';
+  import { getTurnstileToken, initTurnstile, resetTurnstile } from '../scripts/turnstile';
 
-  const createBtn = document.getElementById('create') as HTMLButtonElement;
+  const card = document.getElementById('start') as HTMLDivElement;
+  const t = useTranslations(isLang(card.dataset.lang) ? card.dataset.lang : 'en');
+  const siteKey = card.dataset.turnstileSitekey;
+  const createBtns = document.querySelectorAll<HTMLButtonElement>('.js-create');
   const form = document.getElementById('join') as HTMLFormElement;
   const input = document.getElementById('code') as HTMLInputElement;
   const errorEl = document.getElementById('error') as HTMLParagraphElement;
+
+  if (siteKey) initTurnstile(document.getElementById('turnstile-widget')!, siteKey, card.dataset.lang ?? 'en');
 
   function showError(message: string) {
     errorEl.textContent = message;
     errorEl.hidden = false;
   }
 
-  createBtn.addEventListener('click', async () => {
-    createBtn.disabled = true;
+  async function createRoom() {
+    createBtns.forEach((b) => (b.disabled = true));
     errorEl.hidden = true;
     try {
-      const res = await fetch('/api/rooms', { method: 'POST' });
-      const data = (await res.json()) as { code?: string; message?: string };
-      if (!res.ok) throw new Error(data.message ?? 'Fehler beim Erstellen.');
+      const turnstileToken = siteKey
+        ? await getTurnstileToken().catch(() => {
+            throw new Error(t.errors.captcha_failed);
+          })
+        : undefined;
+      const res = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turnstileToken }),
+      });
+      const data = (await res.json()) as { code?: string; error?: string };
+      if (!res.ok) throw new Error(apiErrorMessage(t, data.error, res.status));
       location.href = `/${data.code}`;
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Fehler beim Erstellen.');
-      createBtn.disabled = false;
+      showError(e instanceof Error ? e.message : t.errors.createFailed);
+      document.getElementById('start')?.scrollIntoView({ behavior: 'smooth' });
+      createBtns.forEach((b) => (b.disabled = false));
+      if (siteKey) resetTurnstile();
     }
-  });
+  }
+
+  createBtns.forEach((b) => b.addEventListener('click', createRoom));
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const code = normalizeCode(input.value);
-    if (!code) return showError('Ungültiger Code – 6 Zeichen, z. B. ABC234.');
+    if (!code) return showError(t.errors.invalidCode);
     location.href = `/${code}`;
   });
 </script>

@@ -26,12 +26,14 @@ Browser ──HTTP──▶ Worker (src/worker.ts)
   - **Alarm**: Bei jeder Aktivität wird er auf jetzt + 24 h gesetzt. Wenn er auslöst, löscht er alle R2-Objekte unter `rooms/<CODE>/` und danach den gesamten DO-Storage.
 - **Uploads** laufen als Stream durch den Worker nach R2: Erst reserviert das DO einen Eintrag (prüft dabei das 50er-Limit), dann wird über einen `FixedLengthStream` nach R2 geschrieben, dann bestätigt das DO den Eintrag und sendet ihn an alle Geräte.
 - **Rate Limiting** über das Workers-Rate-Limiting-Binding, Schlüssel ist die IP (`cf-connecting-ip`).
+- **Turnstile** schützt die Raumerstellung. Der Worker prüft das Token per `siteverify`. Ohne konfigurierte Keys ist Turnstile deaktiviert.
+- **Sprachen: Deutsch und Englisch.** Die Middleware (`src/middleware.ts`) wählt die Sprache über das Cookie `lang`, sonst über `Accept-Language`, sonst Englisch. `?lang=de` bzw. `?lang=en` setzt das Cookie und leitet auf die URL ohne Parameter um. Raum-URLs bleiben sprachneutral (`/<CODE>`). Texte stehen in `src/i18n/index.ts`.
 
 ### API
 
 | Methode & Pfad | Zweck |
 |---|---|
-| `POST /api/rooms` | Raum erstellen → `{ code }` (Rate-Limit `RL_CREATE`) |
+| `POST /api/rooms` | Body `{ turnstileToken }` → `{ code }` (Turnstile + Rate-Limit `RL_CREATE`) |
 | `GET /api/rooms/:code` | Existiert der Raum? 200 / 404 |
 | `GET /api/rooms/:code/ws` | WebSocket für den Live-Sync |
 | `POST /api/rooms/:code/text` | `{ text }` → Eintrag (Links werden automatisch erkannt) |
@@ -63,15 +65,20 @@ src/
 ├─ server/
 │  ├─ api.ts              API-Routen, Validierung, Rate Limiting, R2-Streaming
 │  └─ room.ts             Durable Object (SQLite, WebSockets, Alarm)
+├─ middleware.ts          Spracherkennung (Cookie / Accept-Language / ?lang=)
+├─ i18n/index.ts          Texte DE/EN, Fehlercodes → Meldungen
+├─ components/LangSwitch.astro
 ├─ shared/                Code von Client und Server gemeinsam
 │  ├─ codes.ts            Code-Generator/-Validierung
 │  ├─ limits.ts           Limits & TTL
-│  └─ types.ts            Item- und Message-Typen
+│  ├─ types.ts            Item- und Message-Typen
+│  └─ site.ts             Repo- und Support-Link
 ├─ pages/
-│  ├─ index.astro         Startseite (prerendered)
+│  ├─ index.astro         Landingpage (SSR wegen Sprache)
 │  └─ [code].astro        Raum-Ansicht (SSR, 404 bei unbekanntem Code)
 ├─ scripts/
 │  ├─ room-client.ts      WebSocket, Reconnect, Uploads mit Fortschritt, Drag & Drop
+│  ├─ turnstile.ts        Turnstile-Widget (explizites Rendering)
 │  └─ ui.ts               Toast, Clipboard
 ├─ layouts/Base.astro
 └─ styles/global.css      Mobile-first, Dark Mode (folgt dem System, dunkel als Standard)
@@ -83,6 +90,7 @@ Voraussetzungen: Node.js ≥ 22, ein Cloudflare-Account für das Deployment.
 
 ```sh
 npm install
+cp .dev.vars.example .dev.vars   # Turnstile-Test-Keys für lokal
 ```
 
 ## Entwicklung
@@ -133,6 +141,19 @@ npm run cf-typegen  # Env-Typen aus wrangler.jsonc neu erzeugen (worker-configur
    ```jsonc
    "routes": [{ "pattern": "beam.example.com", "custom_domain": true }]
    ```
+
+### Turnstile einrichten
+
+1. Im Cloudflare-Dashboard unter *Turnstile → Add widget* ein Widget anlegen: Hostnames sind deine Domain bzw. `beam.<account>.workers.dev` und für Previews `<account>.workers.dev`, Modus „Managed“.
+2. Den **Site Key** in `wrangler.jsonc` unter `vars.TURNSTILE_SITE_KEY` eintragen. Für Previews kommt er zusätzlich unter `previews.vars`.
+3. Den **Secret Key** als Secret hinterlegen:
+   ```sh
+   npx wrangler secret put TURNSTILE_SECRET_KEY
+   npx wrangler preview secret put TURNSTILE_SECRET_KEY   # optional für Previews
+   ```
+4. `npm run deploy`
+
+Solange einer der beiden Keys fehlt, bleibt Turnstile aus und Räume lassen sich ohne Prüfung erstellen. Das Rate Limiting greift trotzdem.
 
 ### Previews
 

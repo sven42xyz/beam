@@ -1,9 +1,13 @@
 ---
 import { env } from 'cloudflare:workers';
 import Base from '../layouts/Base.astro';
+import LangSwitch from '../components/LangSwitch.astro';
+import { useTranslations } from '../i18n';
 import { normalizeCode } from '../shared/codes';
 import { MAX_FILE_BYTES, MAX_ITEMS } from '../shared/limits';
 
+const { lang } = Astro.locals;
+const t = useTranslations(lang);
 const raw = Astro.params.code ?? '';
 const code = normalizeCode(raw);
 
@@ -15,75 +19,80 @@ if (!exists) Astro.response.status = 404;
 Astro.response.headers.set('Cache-Control', 'no-store');
 ---
 
-<Base title={exists ? `Beam · ${code}` : 'Beam · Raum nicht gefunden'}>
+<Base title={exists ? `Beam · ${code}` : `Beam · ${t.room.titleNotFound}`}>
   {
     !exists ? (
       <main class="notfound">
-        <h1>Raum nicht gefunden</h1>
-        <p class="muted">Der Code ist ungültig oder der Raum ist abgelaufen (24 h ohne Aktivität).</p>
+        <h1>{t.room.notFound}</h1>
+        <p class="muted">{t.room.notFoundText}</p>
         <a class="btn btn-primary" href="/">
-          Zur Startseite
+          {t.room.toHome}
         </a>
       </main>
     ) : (
-      <main class="room" id="room" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS}>
+      <main class="room" id="room" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
         <header class="top">
-          <a href="/" class="brand" aria-label="Beam Startseite">
+          <a href="/" class="brand" aria-label={t.room.homeLabel}>
             Beam
           </a>
-          <span class="status" id="status" data-state="connecting">
-            <span class="dot" />
-            <span id="status-text">Verbinde…</span>
-          </span>
+          <div class="top-right">
+            <span class="status" id="status" data-state="connecting">
+              <span class="dot" />
+              <span id="status-text">{t.room.connecting}</span>
+            </span>
+            <LangSwitch />
+          </div>
         </header>
 
         <section class="card share">
           <div class="share-main">
             <div>
-              <div class="muted label">Raum-Code</div>
-              <button class="code mono" id="copy-link" title="Link kopieren">
+              <div class="muted label">{t.room.roomCode}</div>
+              <button class="code mono" id="copy-link" title={t.room.copyLink}>
                 {code}
               </button>
             </div>
             <button class="btn btn-small btn-ghost" id="toggle-qr" aria-expanded="false" aria-controls="qr-panel">
-              QR-Code
+              {t.room.qr}
             </button>
           </div>
           <div class="qr-panel" id="qr-panel" hidden>
-            <canvas id="qr" width="220" height="220" aria-label="QR-Code zum Raum" />
+            <canvas id="qr" width="220" height="220" aria-label={t.room.qrLabel} />
             <p class="muted small mono" id="room-url" />
           </div>
         </section>
 
         <section class="card composer">
           <label for="text" class="sr-only">
-            Text oder Link
+            {t.room.textLabel}
           </label>
-          <textarea id="text" rows="3" placeholder="Text oder Link einfügen…" />
+          <textarea id="text" rows="3" placeholder={t.room.placeholder} />
           <div class="composer-actions">
             <label class="btn btn-small" for="file">
-              <span aria-hidden="true">＋</span> Datei
+              <span aria-hidden="true">＋</span> {t.room.file}
             </label>
             <input id="file" type="file" multiple class="sr-only" />
-            <span class="muted small hint">oder hierher ziehen</span>
-            <button class="btn btn-primary btn-small" id="send">Senden</button>
+            <span class="muted small hint">{t.room.dropHint}</span>
+            <button class="btn btn-primary btn-small" id="send">
+              {t.room.send}
+            </button>
           </div>
         </section>
 
         <ul class="uploads" id="uploads" />
 
         <div class="list-head">
-          <h2>Einträge</h2>
+          <h2>{t.room.items}</h2>
           <span class="muted small" id="count" />
         </div>
         <ul class="items" id="items" />
         <p class="empty muted" id="empty">
-          Noch nichts hier. Schick etwas von einem beliebigen Gerät.
+          {t.room.empty}
         </p>
         <p class="muted small expiry" id="expiry" />
 
         <div class="dropzone" id="dropzone" hidden>
-          <div>Dateien loslassen zum Senden</div>
+          <div>{t.room.dropzone}</div>
         </div>
       </main>
     )
@@ -111,6 +120,11 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     color: var(--text);
     text-decoration: none;
     letter-spacing: -0.01em;
+  }
+  .top-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .status {
     display: inline-flex;
@@ -239,9 +253,6 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     color: var(--accent);
     font-weight: 700;
     font-size: 18px;
-  }
-  .dropzone[hidden] {
-    display: none;
   }
 
   /* Einträge werden per JS erzeugt → :global */

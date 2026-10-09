@@ -39,6 +39,11 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* hidden-Attribut soll immer gewinnen, auch gegen display: flex/grid in Komponenten */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100dvh;

@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { apiErrorMessage, isLang, useTranslations, type Lang } from '../i18n';
 import type { Item, ServerMessage } from '../shared/types';
 import { copyText, toast } from './ui';
 
@@ -35,8 +36,8 @@ export function formatBytes(n: number): string {
   return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
 }
 
-function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+function formatTime(ts: number, lang: Lang): string {
+  return new Date(ts).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
 }
 
 function extOf(name: string): string {
@@ -44,17 +45,19 @@ function extOf(name: string): string {
   return dot > 0 && name.length - dot <= 5 ? name.slice(dot + 1) : 'file';
 }
 
-async function errorMessage(res: Response): Promise<string> {
+async function readErrorCode(res: Response): Promise<string | undefined> {
   try {
-    const data = (await res.json()) as { message?: string };
-    return data.message ?? `Fehler ${res.status}`;
+    return ((await res.json()) as { error?: string }).error;
   } catch {
-    return `Fehler ${res.status}`;
+    return undefined;
   }
 }
 
 export function initRoom(root: HTMLElement) {
   const code = root.dataset.code!;
+  const lang: Lang = isLang(root.dataset.lang) ? root.dataset.lang : 'en';
+  const t = useTranslations(lang);
+  const errorMessage = async (res: Response) => apiErrorMessage(t, await readErrorCode(res), res.status);
   const maxFile = Number(root.dataset.maxFile);
   const maxItems = Number(root.dataset.maxItems);
   const roomUrl = `${location.origin}/${code}`;
@@ -78,7 +81,7 @@ export function initRoom(root: HTMLElement) {
 
   $('room-url').textContent = roomUrl;
   $('copy-link').addEventListener('click', async () => {
-    if (await copyText(roomUrl)) toast('Link kopiert');
+    if (await copyText(roomUrl)) toast(t.room.linkCopied);
   });
 
   const qrPanel = $('qr-panel');
@@ -101,7 +104,7 @@ export function initRoom(root: HTMLElement) {
     const li = h('li', { className: 'item' });
     li.dataset.id = item.id;
     const foot = h('div', { className: 'item-foot' });
-    const meta = h('span', { className: 'meta' }, formatTime(item.createdAt));
+    const meta = h('span', { className: 'meta' }, formatTime(item.createdAt, lang));
 
     if (item.kind === 'file') {
       const body = h(
@@ -110,7 +113,7 @@ export function initRoom(root: HTMLElement) {
         h('span', { className: 'file-icon' }, extOf(item.name!)),
         h('div', {}, h('div', { className: 'file-name' }, item.name!), h('div', { className: 'muted small' }, formatBytes(item.size!))),
       );
-      const dl = h('a', { className: 'btn btn-small btn-primary', href: `${api}/files/${item.id}`, textContent: 'Herunterladen' });
+      const dl = h('a', { className: 'btn btn-small btn-primary', href: `${api}/files/${item.id}`, textContent: t.room.download });
       dl.setAttribute('download', item.name!);
       add(li, body);
       add(foot, meta, dl);
@@ -120,16 +123,16 @@ export function initRoom(root: HTMLElement) {
         item.kind === 'link'
           ? h('a', { className: 'item-body item-link', href: content, target: '_blank', rel: 'noopener noreferrer' }, content)
           : h('pre', { className: 'item-body item-text' }, content);
-      const copy = h('button', { className: 'btn btn-small btn-primary', textContent: 'Kopieren' });
+      const copy = h('button', { className: 'btn btn-small btn-primary', textContent: t.room.copy });
       copy.addEventListener('click', async () => {
-        if (await copyText(content)) toast('Kopiert');
+        if (await copyText(content)) toast(t.room.copied);
       });
       add(li, body);
       add(foot, meta, copy);
     }
 
-    const del = h('button', { className: 'btn btn-small btn-ghost btn-delete', textContent: '✕', title: 'Löschen' });
-    del.setAttribute('aria-label', 'Eintrag löschen');
+    const del = h('button', { className: 'btn btn-small btn-ghost btn-delete', textContent: '✕', title: t.room.delete });
+    del.setAttribute('aria-label', t.room.deleteItem);
     del.addEventListener('click', async () => {
       del.disabled = true;
       const res = await fetch(`${api}/items/${item.id}`, { method: 'DELETE' });
@@ -149,11 +152,8 @@ export function initRoom(root: HTMLElement) {
   }
 
   function setExpiry(expiresAt: number) {
-    expiryEl.textContent = `Raum wird gelöscht am ${new Date(expiresAt).toLocaleString(undefined, {
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    })} (24 h nach letzter Aktivität).`;
+    const date = new Date(expiresAt).toLocaleString(lang, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+    expiryEl.textContent = t.room.expiresAt(date);
   }
 
   function addItem(item: Item, prepend = true) {
@@ -184,7 +184,7 @@ export function initRoom(root: HTMLElement) {
 
   function connect() {
     if (gone) return;
-    setStatus('connecting', 'Verbinde…');
+    setStatus('connecting', t.room.connecting);
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${proto}//${location.host}${api}/ws`);
 
@@ -224,11 +224,11 @@ export function initRoom(root: HTMLElement) {
       clearInterval(pingTimer);
       if (e.code === 4404 || !(await roomExists())) {
         gone = true;
-        setStatus('offline', 'Raum abgelaufen');
+        setStatus('offline', t.room.expired);
         location.reload();
         return;
       }
-      setStatus('offline', 'Offline – verbinde neu…');
+      setStatus('offline', t.room.reconnecting);
       const delay = Math.min(1000 * 2 ** retry++, 15_000);
       setTimeout(connect, delay);
     });
@@ -244,7 +244,7 @@ export function initRoom(root: HTMLElement) {
   }
 
   function setDevices(n: number) {
-    setStatus('online', n === 1 ? '1 Gerät' : `${n} Geräte`);
+    setStatus('online', t.room.devices(n));
   }
 
   // Nach Standby / Tab-Wechsel schnell wieder verbinden
@@ -273,7 +273,7 @@ export function initRoom(root: HTMLElement) {
       addItem(await res.json());
       textEl.value = '';
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Senden fehlgeschlagen');
+      toast(e instanceof Error ? e.message : t.errors.sendFailed);
     } finally {
       sendBtn.disabled = false;
     }
@@ -291,7 +291,7 @@ export function initRoom(root: HTMLElement) {
 
   function uploadFile(file: File) {
     if (file.size > maxFile) {
-      toast(`„${file.name}“ ist zu groß (max. ${formatBytes(maxFile)})`);
+      toast(t.room.fileTooLarge(file.name, formatBytes(maxFile)));
       return;
     }
     const progress = h('progress', { max: 1, value: 0 });
@@ -311,14 +311,14 @@ export function initRoom(root: HTMLElement) {
         addItem(JSON.parse(xhr.responseText));
         row.remove();
       } else {
-        let message = `Fehler ${xhr.status}`;
+        let errorCode: string | undefined;
         try {
-          message = JSON.parse(xhr.responseText).message ?? message;
+          errorCode = JSON.parse(xhr.responseText).error;
         } catch {}
-        fail(message);
+        fail(apiErrorMessage(t, errorCode, xhr.status));
       }
     });
-    xhr.addEventListener('error', () => fail('Netzwerkfehler'));
+    xhr.addEventListener('error', () => fail(t.errors.network));
 
     function fail(message: string) {
       row.classList.add('failed');
