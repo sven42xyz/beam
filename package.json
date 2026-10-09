@@ -1,0 +1,26 @@
+{
+  "name": "beam",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler types && astro dev",
+    "build": "wrangler types && astro build",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "check": "wrangler types && astro check",
+    "cf-typegen": "wrangler types",
+    "deploy:preview": "npm run build && wrangler preview"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.3.4",
+    "astro": "^7.3.8",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.149.0"
+  }
+}

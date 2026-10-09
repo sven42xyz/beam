@@ -1,0 +1,170 @@
+---
+import Base from '../layouts/Base.astro';
+import { CODE_LENGTH } from '../shared/codes';
+
+export const prerender = true;
+---
+
+<Base title="Beam – Dateien & Text zwischen Geräten">
+  <main class="home">
+    <header class="hero">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="44" height="44"
+          ><path
+            d="M9 23 L23 9 M14 9 h9 v9"
+            stroke="currentColor"
+            stroke-width="3.2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path></svg
+        >
+      </div>
+      <h1>Beam</h1>
+      <p class="muted">Text, Links und Dateien sofort zwischen deinen Geräten teilen. Ohne Login.</p>
+    </header>
+
+    <section class="card actions">
+      <button class="btn btn-primary btn-big" id="create">Raum erstellen</button>
+
+      <div class="divider"><span>oder Code eingeben</span></div>
+
+      <form id="join" autocomplete="off">
+        <label for="code" class="sr-only">Raum-Code</label>
+        <input
+          id="code"
+          name="code"
+          class="code-input mono"
+          inputmode="text"
+          autocapitalize="characters"
+          spellcheck="false"
+          maxlength={CODE_LENGTH + 2}
+          placeholder="ABC234"
+          required
+        />
+        <button class="btn" type="submit">Beitreten</button>
+      </form>
+      <p class="error" id="error" role="alert" hidden></p>
+    </section>
+
+    <p class="muted footnote">Räume werden 24 Stunden nach der letzten Aktivität automatisch gelöscht.</p>
+  </main>
+</Base>
+
+<style>
+  .home {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: max(12vh, 32px);
+    max-width: 440px;
+  }
+  .hero {
+    text-align: center;
+  }
+  .logo {
+    display: inline-grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+  h1 {
+    margin: 16px 0 4px;
+    font-size: 40px;
+    letter-spacing: -0.02em;
+  }
+  .hero p {
+    margin: 0 auto;
+    max-width: 32ch;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  .btn-big {
+    min-height: 54px;
+    font-size: 18px;
+  }
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  form {
+    display: flex;
+    gap: 8px;
+  }
+  .code-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 20px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .code-input::placeholder {
+    color: var(--border);
+  }
+  .error {
+    margin: 0;
+    color: var(--danger);
+    font-size: 14px;
+  }
+  .footnote {
+    text-align: center;
+    font-size: 13px;
+  }
+</style>
+
+<script>
+  import { normalizeCode } from '../shared/codes';
+
+  const createBtn = document.getElementById('create') as HTMLButtonElement;
+  const form = document.getElementById('join') as HTMLFormElement;
+  const input = document.getElementById('code') as HTMLInputElement;
+  const errorEl = document.getElementById('error') as HTMLParagraphElement;
+
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  createBtn.addEventListener('click', async () => {
+    createBtn.disabled = true;
+    errorEl.hidden = true;
+    try {
+      const res = await fetch('/api/rooms', { method: 'POST' });
+      const data = (await res.json()) as { code?: string; message?: string };
+      if (!res.ok) throw new Error(data.message ?? 'Fehler beim Erstellen.');
+      location.href = `/${data.code}`;
+    } catch (e) {
+      showError(e instanceof Error ? e.message : 'Fehler beim Erstellen.');
+      createBtn.disabled = false;
+    }
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = normalizeCode(input.value);
+    if (!code) return showError('Ungültiger Code – 6 Zeichen, z. B. ABC234.');
+    location.href = `/${code}`;
+  });
+</script>
