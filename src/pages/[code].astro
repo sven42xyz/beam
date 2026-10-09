@@ -1,7 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
 import Base from '../layouts/Base.astro';
-import LangSwitch from '../components/LangSwitch.astro';
+import SiteHeader from '../components/SiteHeader.astro';
 import { useTranslations } from '../i18n';
 import { normalizeCode } from '../shared/codes';
 import { MAX_FILE_BYTES, MAX_ITEMS } from '../shared/limits';
@@ -22,27 +22,24 @@ Astro.response.headers.set('Cache-Control', 'no-store');
 <Base title={exists ? `Beam · ${code}` : `Beam · ${t.room.titleNotFound}`}>
   {
     !exists ? (
-      <main class="notfound">
-        <h1>{t.room.notFound}</h1>
-        <p class="muted">{t.room.notFoundText}</p>
-        <a class="btn btn-primary" href="/">
-          {t.room.toHome}
-        </a>
+      <main>
+        <SiteHeader />
+        <div class="notfound">
+          <h1>{t.room.notFound}</h1>
+          <p class="muted">{t.room.notFoundText}</p>
+          <a class="btn btn-primary" href="/">
+            {t.room.toHome}
+          </a>
+        </div>
       </main>
     ) : (
       <main class="room" id="room" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
-        <header class="top">
-          <a href="/" class="brand" aria-label={t.room.homeLabel}>
-            Beam
-          </a>
-          <div class="top-right">
-            <span class="status" id="status" data-state="connecting">
-              <span class="dot" />
-              <span id="status-text">{t.room.connecting}</span>
-            </span>
-            <LangSwitch />
-          </div>
-        </header>
+        <SiteHeader compact>
+          <span class="status" id="status" data-state="connecting">
+            <span class="dot" />
+            <span id="status-text">{t.room.connecting}</span>
+          </span>
+        </SiteHeader>
 
         <section class="card share">
           <div class="share-main">
@@ -102,29 +99,12 @@ Astro.response.headers.set('Cache-Control', 'no-store');
 <style>
   .notfound {
     text-align: center;
-    padding-top: 20vh;
+    padding-top: 14vh;
   }
   .room {
     display: flex;
     flex-direction: column;
     gap: 14px;
-  }
-  .top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .brand {
-    font-weight: 800;
-    font-size: 20px;
-    color: var(--text);
-    text-decoration: none;
-    letter-spacing: -0.01em;
-  }
-  .top-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
   }
   .status {
     display: inline-flex;
@@ -156,9 +136,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     gap: 12px;
   }
   .label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 13px;
   }
   .code {
     all: unset;

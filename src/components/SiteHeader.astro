@@ -1,0 +1,65 @@
+---
+import LangSwitch from './LangSwitch.astro';
+import Logo from './Logo.astro';
+import { useTranslations } from '../i18n';
+import { REPO_URL } from '../shared/site';
+
+interface Props {
+  /** Blendet den GitHub-Link auf schmalen Screens aus (Platz für Inhalte im Slot) */
+  compact?: boolean;
+}
+const { compact = false } = Astro.props;
+const t = useTranslations(Astro.locals.lang);
+---
+
+<header class:list={['site-header', { compact }]}>
+  <a href="/" class="brand" aria-label={t.room.homeLabel}>
+    <Logo />
+    <span>Beam</span>
+  </a>
+  <div class="header-right">
+    <slot />
+    <a class="header-link" href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
+    <LangSwitch />
+  </div>
+</header>
+
+<style>
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 0;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .header-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .header-link:hover {
+    color: var(--text);
+  }
+  @media (max-width: 480px) {
+    .compact .header-link {
+      display: none;
+    }
+  }
+</style>

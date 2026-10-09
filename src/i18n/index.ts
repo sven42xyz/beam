@@ -36,7 +36,6 @@ const de = {
     language: 'Sprache',
   },
   home: {
-    eyebrow: 'Handy ⇄ Laptop',
     headline: 'Vom einen Gerät aufs andere.',
     headlineAccent: 'In Sekunden.',
     lead: 'Text, Links und Dateien schnell zwischen deinen Geräten austauschen, ohne Login, ohne App und ohne dir selbst Mails zu schicken.',
@@ -144,7 +143,6 @@ const en: Dict = {
     language: 'Language',
   },
   home: {
-    eyebrow: 'Phone ⇄ Laptop',
     headline: 'From one device to another.',
     headlineAccent: 'In seconds.',
     lead: 'Move text, links and files between your devices in no time. No login, no app, no emailing yourself.',

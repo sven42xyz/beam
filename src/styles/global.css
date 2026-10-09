@@ -1,14 +1,16 @@
 :root {
   color-scheme: dark;
-  --bg: #0d0f12;
-  --surface: #161a1f;
-  --surface-2: #1e232a;
-  --border: #2a3038;
-  --text: #e8ecf1;
-  --muted: #8b95a3;
-  --accent: #7cf0c5;
-  --accent-ink: #062018;
-  --danger: #ff7a7a;
+  /* Nachtblau statt neutralem Schwarz, Periwinkle als Akzent, Bernstein als „Funke“ */
+  --bg: #0f1220;
+  --surface: #171b2e;
+  --surface-2: #20253c;
+  --border: #2a3050;
+  --text: #e9ecf8;
+  --muted: #8a91ad;
+  --accent: #8ea2ff;
+  --accent-ink: #0f1220;
+  --spark: #ffc857;
+  --danger: #ff8a8a;
   --radius: 14px;
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -17,14 +19,15 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
     color-scheme: light;
-    --bg: #f6f7f9;
+    --bg: #f5f6fb;
     --surface: #ffffff;
-    --surface-2: #eef1f4;
-    --border: #dde2e8;
-    --text: #12161b;
-    --muted: #5d6773;
-    --accent: #0a9e6e;
+    --surface-2: #eceef8;
+    --border: #d9dcec;
+    --text: #141830;
+    --muted: #5c6382;
+    --accent: #4257e8;
     --accent-ink: #ffffff;
+    --spark: #f0a020;
     --danger: #c93838;
   }
 }
@@ -56,7 +59,7 @@ main {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: 0 16px 48px;
 }
 
 a {

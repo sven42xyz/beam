@@ -1,0 +1,34 @@
+---
+// Bildmarke: ein Funke mit Lichtspuren – ein gebeamtes Teilchen in Bewegung.
+interface Props {
+  size?: number;
+}
+const { size = 30 } = Astro.props;
+---
+
+<svg class="logo" viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">
+  <rect class="logo-tile" x="0.5" y="0.5" width="31" height="31" rx="9"></rect>
+  <g class="logo-trail" stroke-linecap="round" stroke-width="2.4">
+    <path d="M7.5 11.5H15" opacity="0.55"></path>
+    <path d="M4.5 16H17.5"></path>
+    <path d="M7.5 20.5H15" opacity="0.55"></path>
+  </g>
+  <circle class="logo-spark" cx="22.5" cy="16" r="4.6"></circle>
+</svg>
+
+<style>
+  .logo {
+    display: block;
+    flex: none;
+  }
+  .logo-tile {
+    fill: var(--surface);
+    stroke: var(--border);
+  }
+  .logo-trail {
+    stroke: var(--accent);
+  }
+  .logo-spark {
+    fill: var(--spark);
+  }
+</style>

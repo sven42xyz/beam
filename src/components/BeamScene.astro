@@ -1,0 +1,382 @@
+---
+// Dekorative Animation: Eine Datei wird vom Handy zum Laptop gebeamt.
+// Ablauf (6 s, Schleife): Datei erscheint → wackelt → schrumpft zum Funken → fliegt im Bogen
+// mit Lichtspur → landet → Datei baut sich auf dem Laptop wieder auf → Häkchen.
+// Der Funke folgt der Kurve M90 70 Q310 -30 530 73: x ist darin linear, y quadratisch;
+// die Keyframes von .spark-fly sind Stützpunkte dieser Kurve.
+---
+
+<div class="beam-scene" aria-hidden="true">
+  <svg viewBox="0 0 640 150" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="spark-glow">
+        <stop offset="0" style="stop-color: var(--spark); stop-opacity: 0.9"></stop>
+        <stop offset="1" style="stop-color: var(--spark); stop-opacity: 0"></stop>
+      </radialGradient>
+      <mask id="trail-reveal" maskUnits="userSpaceOnUse">
+        <path class="trail-mask" d="M90 70 Q310 -30 530 73" pathLength="100"></path>
+      </mask>
+      <symbol id="file" viewBox="-1 -1 28 34">
+        <path class="file-body" d="M3 1h13l9 9v18a3 3 0 0 1-3 3H3a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3z"></path>
+        <path class="file-fold" d="M16 1v6a3 3 0 0 0 3 3h6"></path>
+        <path class="file-lines" d="M6 17h13M6 22h9"></path>
+      </symbol>
+    </defs>
+
+    <!-- Handy -->
+    <g class="device">
+      <rect x="62" y="24" width="56" height="102" rx="11"></rect>
+      <path d="M82 31h16"></path>
+    </g>
+
+    <!-- Laptop -->
+    <g class="device">
+      <rect class="laptop-screen" x="476" y="38" width="108" height="70" rx="7"></rect>
+      <path d="M456 114h148l-8 9H464z"></path>
+    </g>
+    <rect class="screen-flash" x="477" y="39" width="106" height="68" rx="6"></rect>
+
+    <!-- Lichtspur -->
+    <path class="trail" d="M90 70 Q310 -30 530 73" mask="url(#trail-reveal)"></path>
+
+    <!-- Datei auf dem Handy -->
+    <g class="file-src">
+      <use href="#file" x="76" y="53" width="28" height="34"></use>
+    </g>
+
+    <!-- Funke -->
+    <g class="spark-fly">
+      <g class="spark">
+        <circle cx="90" cy="70" r="16" fill="url(#spark-glow)"></circle>
+        <circle cx="90" cy="70" r="5" class="spark-core"></circle>
+      </g>
+    </g>
+
+    <!-- Datei auf dem Laptop -->
+    <g class="file-dst">
+      <use href="#file" x="516" y="56" width="28" height="34"></use>
+      <g class="check">
+        <circle cx="545" cy="86" r="8"></circle>
+        <path d="M541.5 86l2.5 2.5 4.5-5"></path>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<style>
+  .beam-scene {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto 8px;
+    color: var(--muted);
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .device {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .laptop-screen {
+    fill: var(--surface);
+  }
+  .screen-flash {
+    fill: var(--accent);
+    opacity: 0;
+  }
+
+  .file-body {
+    fill: var(--surface-2);
+    stroke: var(--accent);
+    stroke-width: 1.6;
+  }
+  .file-fold {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.6;
+  }
+  .file-lines {
+    stroke: var(--muted);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  .trail {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 2 7;
+  }
+  .trail-mask {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 8;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  .spark-core {
+    fill: var(--spark);
+  }
+  .check circle {
+    fill: var(--accent);
+  }
+  .check path {
+    fill: none;
+    stroke: var(--accent-ink);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .file-src,
+  .file-dst,
+  .spark,
+  .check {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* ---------- Animation ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .file-src,
+    .file-dst,
+    .spark,
+    .spark-fly,
+    .check,
+    .trail-mask,
+    .trail,
+    .screen-flash {
+      animation-duration: 6s;
+      animation-iteration-count: infinite;
+      animation-fill-mode: both;
+    }
+
+    .file-src {
+      animation-name: file-src;
+    }
+    .spark-fly {
+      animation-name: spark-fly;
+      animation-timing-function: linear;
+    }
+    .spark {
+      animation-name: spark;
+    }
+    .trail-mask {
+      animation-name: trail-draw;
+    }
+    .trail {
+      animation-name: trail-fade;
+    }
+    .screen-flash {
+      animation-name: flash;
+    }
+    .file-dst {
+      animation-name: file-dst;
+    }
+    .check {
+      animation-name: check;
+    }
+  }
+
+  /* Datei taucht auf, wackelt vorfreudig, wird gestaucht und schrumpft zum Funken */
+  @keyframes file-src {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    5% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+    8% {
+      transform: scale(1);
+    }
+    13% {
+      transform: rotate(-7deg);
+    }
+    16% {
+      transform: rotate(6deg);
+    }
+    19% {
+      transform: rotate(0deg);
+    }
+    23% {
+      opacity: 1;
+      transform: scale(1.18, 0.78);
+    }
+    28% {
+      opacity: 0;
+      transform: scale(0.1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.1);
+    }
+  }
+
+  /* Bogen von (90,70) nach (530,73): Stützpunkte der quadratischen Kurve */
+  @keyframes spark-fly {
+    0%,
+    27% {
+      transform: translate(0, 0);
+    }
+    30.75% {
+      transform: translate(55px, -21.8px);
+    }
+    34.5% {
+      transform: translate(110px, -37.3px);
+    }
+    38.25% {
+      transform: translate(165px, -46.5px);
+    }
+    42% {
+      transform: translate(220px, -49.3px);
+    }
+    45.75% {
+      transform: translate(275px, -45.7px);
+    }
+    49.5% {
+      transform: translate(330px, -35.8px);
+    }
+    53.25% {
+      transform: translate(385px, -19.6px);
+    }
+    57%,
+    100% {
+      transform: translate(440px, 3px);
+    }
+  }
+
+  @keyframes spark {
+    0%,
+    24% {
+      opacity: 0;
+      transform: scale(0.2);
+    }
+    28% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+    32% {
+      transform: scale(1);
+    }
+    55% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    60% {
+      opacity: 0;
+      transform: scale(2.4);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.2);
+    }
+  }
+
+  @keyframes trail-draw {
+    0%,
+    27% {
+      stroke-dashoffset: 100;
+    }
+    57%,
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes trail-fade {
+    0%,
+    60% {
+      opacity: 1;
+    }
+    72%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes flash {
+    0%,
+    57% {
+      opacity: 0;
+    }
+    60% {
+      opacity: 0.22;
+    }
+    70%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Datei baut sich auf dem Laptop wieder auf */
+  @keyframes file-dst {
+    0%,
+    59% {
+      opacity: 0;
+      transform: scale(0.1);
+    }
+    64% {
+      opacity: 1;
+      transform: scale(1.16);
+    }
+    68% {
+      transform: scale(0.95);
+    }
+    71% {
+      transform: scale(1);
+    }
+    90% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    97%,
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes check {
+    0%,
+    67% {
+      opacity: 0;
+      transform: scale(0);
+    }
+    71% {
+      opacity: 1;
+      transform: scale(1.25);
+    }
+    74%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Reduzierte Bewegung: ruhiges Standbild „Datei ist angekommen“ */
+  @media (prefers-reduced-motion: reduce) {
+    .file-src {
+      opacity: 0.35;
+    }
+    .spark {
+      opacity: 0;
+    }
+    .trail-mask {
+      stroke-dashoffset: 0;
+    }
+    .trail {
+      opacity: 0.6;
+    }
+  }
+</style>
