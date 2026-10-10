@@ -123,6 +123,12 @@ npm run check       # Typecheck (astro check)
 npm run cf-typegen  # Env-Typen aus wrangler.jsonc neu erzeugen (worker-configuration.d.ts)
 ```
 
+Vorschaubilder für geteilte Links (`public/og-de.png`, `public/og-en.png`) entstehen aus der Vorlage `og/og.html`:
+
+```sh
+npm run og   # rendert beide Sprachen per Headless-Chrome (macOS-Pfad, sonst CHROME=… setzen)
+```
+
 > **Tipp:** Um den Alarm lokal zu testen, `ROOM_TTL_MS` in `src/shared/limits.ts` kurz auf z. B. `5000` setzen.
 
 ## Deployment

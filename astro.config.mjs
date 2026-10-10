@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 
 export default defineConfig({
+  site: 'https://tee.chapter42.de',
   output: 'server',
   // Keine Sessions (würden sonst ein KV-Binding verlangen)
   session: false,

@@ -10,7 +10,8 @@
     "deploy": "npm run build && wrangler deploy",
     "check": "wrangler types && astro check",
     "cf-typegen": "wrangler types",
-    "deploy:preview": "npm run build && wrangler preview"
+    "deploy:preview": "npm run build && wrangler preview",
+    "og": "sh og/render.sh"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.4",

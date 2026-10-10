@@ -30,6 +30,7 @@ const de = {
   meta: {
     title: 'tee – Text & Dateien zwischen Geräten teilen',
     description: 'Text, Links und Dateien schnell zwischen Geräten austauschen – ohne Login.',
+    ogImageAlt: 'tee: Eine Datei fliegt als Funke vom Handy zum Laptop. Vom einen Gerät aufs andere. In Sekunden.',
   },
   nav: {
     github: 'GitHub',
@@ -150,6 +151,7 @@ const en: Dict = {
   meta: {
     title: 'tee – Share text & files between devices',
     description: 'Quickly move text, links and files between your devices – no login.',
+    ogImageAlt: 'tee: a file flies as a spark from a phone to a laptop. From one device to another. In seconds.',
   },
   nav: {
     github: 'GitHub',
