@@ -33,9 +33,9 @@
     }
   ],
 
-  // Turnstile (Raumerstellung). Leer = deaktiviert.
+  // Turnstile (Raumerstellung). Widget „Beam Raumerstellung“. Leer = deaktiviert.
   // Secret: `wrangler secret put TURNSTILE_SECRET_KEY`. Lokal: .dev.vars (siehe .dev.vars.example)
-  "vars": { "TURNSTILE_SITE_KEY": "" },
+  "vars": { "TURNSTILE_SITE_KEY": "0x4AAAAAAFTFRdi6GsGoj81e" },
 
   // workers.dev-URLs für Produktion und Previews
   "workers_dev": true,
@@ -45,7 +45,7 @@
   // erneut deklariert werden. Eigener Bucket + eigene Rate-Limit-Namespaces, damit
   // Preview-Daten nicht mit Produktion vermischt werden.
   "previews": {
-    "vars": { "TURNSTILE_SITE_KEY": "" },
+    "vars": { "TURNSTILE_SITE_KEY": "0x4AAAAAAFTFRdi6GsGoj81e" },
     "durable_objects": {
       "bindings": [{ "name": "ROOM", "class_name": "Room" }]
     },

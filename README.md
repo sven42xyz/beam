@@ -144,16 +144,24 @@ npm run cf-typegen  # Env-Typen aus wrangler.jsonc neu erzeugen (worker-configur
 
 ### Turnstile einrichten
 
-1. Im Cloudflare-Dashboard unter *Turnstile → Add widget* ein Widget anlegen: Hostnames sind deine Domain bzw. `beam.<account>.workers.dev` und für Previews `<account>.workers.dev`, Modus „Managed“.
-2. Den **Site Key** in `wrangler.jsonc` unter `vars.TURNSTILE_SITE_KEY` eintragen. Für Previews kommt er zusätzlich unter `previews.vars`.
-3. Den **Secret Key** als Secret hinterlegen:
+Für Beam ist das schon erledigt: Das Widget „Beam Raumerstellung“ existiert, der Site Key steht in `wrangler.jsonc`, und der Secret Key liegt als Secret für Produktion und die Preview `main`. Für ein neues Setup:
+
+```sh
+npx wrangler login   # braucht das Recht challenge-widgets.write
+npx wrangler turnstile widget create "Beam Raumerstellung" \
+  --domain beam.<account>.workers.dev --domain main-beam.<account>.workers.dev --mode managed
+```
+
+1. Den **Site Key** aus der Ausgabe in `wrangler.jsonc` unter `vars.TURNSTILE_SITE_KEY` und `previews.vars.TURNSTILE_SITE_KEY` eintragen.
+2. Den **Secret Key** als Secret hinterlegen:
    ```sh
    npx wrangler secret put TURNSTILE_SECRET_KEY
-   npx wrangler preview secret put TURNSTILE_SECRET_KEY   # optional für Previews
+   npx wrangler preview secret put TURNSTILE_SECRET_KEY --name main
    ```
-4. `npm run deploy`
+3. `npm run deploy`
 
-Solange einer der beiden Keys fehlt, bleibt Turnstile aus und Räume lassen sich ohne Prüfung erstellen. Das Rate Limiting greift trotzdem.
+Bei einer eigenen Domain diese per `wrangler turnstile widget update <sitekey> --domain …` zum Widget hinzufügen.
+Solange einer der beiden Keys fehlt, bleibt Turnstile aus. Das Rate Limiting greift trotzdem.
 
 ### Previews
 
