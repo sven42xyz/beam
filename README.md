@@ -6,7 +6,7 @@ Text, Links und Dateien schnell zwischen Geräten austauschen (z. B. Handy → L
 
 Der Name kommt vom Unix-Befehl `tee`: ein Eingang, viele Ausgänge. Was ein Gerät in einen Raum schickt, kommt auf allen anderen an.
 
-1. Auf der Startseite **„Raum erstellen“** klicken. Du bekommst einen 6-stelligen Code (ohne 0/O/1/I/L) und einen QR-Code.
+1. Auf der Startseite **„Raum erstellen“** klicken. Du bekommst einen 6-stelligen Code (ohne verwechselbare Zeichen und ohne Vokale, damit keine Wörter entstehen) und einen QR-Code.
 2. Auf dem zweiten Gerät `https://<domain>/<CODE>` öffnen, den QR-Code scannen oder den Code auf der Startseite eingeben.
 3. Text, Links und Dateien (Auswahl, Drag & Drop oder Einfügen aus der Zwischenablage) erscheinen sofort auf allen verbundenen Geräten.
 
@@ -215,4 +215,4 @@ Nach Änderungen an `wrangler.jsonc` die Typen mit `npm run cf-typegen` neu erze
 ## Bewusst nicht im MVP
 
 Accounts, Ende-zu-Ende-Verschlüsselung, Persistenz über 24 h hinaus, Multipart-Uploads > 100 MB, Passwortschutz für Räume.
-Wer den Code kennt, hat Zugriff auf den Raum. Bei 31⁶ ≈ 887 Mio. möglichen Codes und dem Rate Limit ist Raten unpraktikabel, es ist aber kein Geheimnisschutz.
+In unverschlüsselten Räumen hat Zugriff, wer den Code kennt. Bei 28⁶ ≈ 481 Mio. möglichen Codes und dem Rate Limit ist Raten unpraktikabel, es ist aber kein Geheimnisschutz. Verschlüsselte Räume schützt zusätzlich der 256-bit-Schlüssel im Link.

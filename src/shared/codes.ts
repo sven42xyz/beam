@@ -1,8 +1,11 @@
-// Ohne verwechselbare Zeichen: 0/O, 1/I/L
-export const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+// Neue Codes: ohne verwechselbare Zeichen (0/O, 1/I/L) und ohne Vokale (A, E, U),
+// damit keine anstößigen Wörter entstehen. 28^6 ≈ 481 Mio. Kombinationen.
+export const CODE_ALPHABET = '23456789BCDFGHJKMNPQRSTVWXYZ';
 export const CODE_LENGTH = 6;
 
-const CODE_RE = new RegExp(`^[${CODE_ALPHABET}]{${CODE_LENGTH}}$`);
+// Akzeptiert wird weiterhin das alte Alphabet mit A, E, U, damit bestehende Räume erreichbar bleiben
+const ACCEPTED_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+const CODE_RE = new RegExp(`^[${ACCEPTED_ALPHABET}]{${CODE_LENGTH}}$`);
 
 export function generateCode(): string {
   // Rejection Sampling, damit die Verteilung gleichmäßig bleibt
