@@ -24,6 +24,7 @@ const { title = t.meta.title } = Astro.props;
     <title>{title}</title>
   </head>
   <body>
+    <a class="skip-link" href="#main">{t.a11y.skipToContent}</a>
     <slot />
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>

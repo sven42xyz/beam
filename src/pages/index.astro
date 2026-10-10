@@ -2,10 +2,10 @@
 import { env } from 'cloudflare:workers';
 import Base from '../layouts/Base.astro';
 import TransferScene from '../components/TransferScene.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { useTranslations } from '../i18n';
 import { CODE_LENGTH } from '../shared/codes';
-import { REPO_URL, SUPPORT_URL } from '../shared/site';
 
 const { lang } = Astro.locals;
 const t = useTranslations(lang);
@@ -16,7 +16,7 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
 
 <Base>
   <SiteHeader />
-  <div class="landing">
+  <main class="landing" id="main">
 
     <section class="hero">
       <div class="hero-copy">
@@ -112,20 +112,8 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
       <button class="btn btn-primary btn-big js-create">{t.home.create}</button>
     </section>
 
-    <footer class="footer muted small">
-      <span>{t.home.footer}</span>
-      <span class="footer-links">
-        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
-        {
-          SUPPORT_URL && (
-            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-              {t.home.support}
-            </a>
-          )
-        }
-      </span>
-    </footer>
-  </div>
+  </main>
+  <SiteFooter />
 </Base>
 
 <style>
@@ -133,7 +121,7 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
     width: 100%;
     max-width: 1040px;
     margin: 0 auto;
-    padding: 0 16px 32px;
+    padding: 0 16px 8px;
   }
 
   /* ---------- Hero ---------- */
@@ -201,9 +189,6 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
     font-size: 20px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-  }
-  .code-input::placeholder {
-    color: var(--border);
   }
   .error {
     margin: 0;
@@ -363,24 +348,6 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
   .cta .btn {
     width: 100%;
     max-width: 320px;
-  }
-
-  .footer {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 24px 0 8px;
-  }
-  .footer-links {
-    display: flex;
-    gap: 16px;
-  }
-  .footer a {
-    color: var(--muted);
-  }
-  .footer a:hover {
-    color: var(--text);
   }
 </style>
 

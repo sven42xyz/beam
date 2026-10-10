@@ -1,5 +1,4 @@
 ---
-import LangSwitch from './LangSwitch.astro';
 import Logo from './Logo.astro';
 import { useTranslations } from '../i18n';
 import { REPO_URL } from '../shared/site';
@@ -20,7 +19,6 @@ const t = useTranslations(Astro.locals.lang);
   <div class="header-right">
     <slot />
     <a class="header-link" href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
-    <LangSwitch />
   </div>
 </header>
 

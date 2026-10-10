@@ -1,0 +1,49 @@
+---
+import LangSwitch from './LangSwitch.astro';
+import { useTranslations } from '../i18n';
+import { REPO_URL, SUPPORT_URL } from '../shared/site';
+
+const t = useTranslations(Astro.locals.lang);
+---
+
+<footer class="site-footer">
+  <span>{t.home.footer}</span>
+  <div class="footer-right">
+    <a href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
+    {
+      SUPPORT_URL && (
+        <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+          {t.home.support}
+        </a>
+      )
+    }
+    <LangSwitch />
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 24px 16px 28px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .site-footer a {
+    color: var(--muted);
+  }
+  .site-footer a:hover {
+    color: var(--text);
+  }
+</style>

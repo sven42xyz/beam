@@ -103,6 +103,8 @@ export function initRoom(root: HTMLElement) {
   function renderItem(item: Item): HTMLLIElement {
     const li = h('li', { className: 'item' });
     li.dataset.id = item.id;
+    // Buttons beziehen sich per aria-describedby auf den Inhalt („Kopieren: Hallo Welt“)
+    const bodyId = `item-${item.id}`;
     const foot = h('div', { className: 'item-foot' });
     const meta = h('span', { className: 'meta' }, formatTime(item.createdAt, lang));
 
@@ -111,19 +113,22 @@ export function initRoom(root: HTMLElement) {
         'div',
         { className: 'item-body item-file' },
         h('span', { className: 'file-icon' }, extOf(item.name!)),
-        h('div', {}, h('div', { className: 'file-name' }, item.name!), h('div', { className: 'muted small' }, formatBytes(item.size!))),
+        h('div', {}, h('div', { className: 'file-name', id: bodyId }, item.name!), h('div', { className: 'muted small' }, formatBytes(item.size!))),
       );
+      body.querySelector('.file-icon')?.setAttribute('aria-hidden', 'true');
       const dl = h('a', { className: 'btn btn-small btn-primary', href: `${api}/files/${item.id}`, textContent: t.room.download });
       dl.setAttribute('download', item.name!);
+      dl.setAttribute('aria-describedby', bodyId);
       add(li, body);
       add(foot, meta, dl);
     } else {
       const content = item.content!;
       const body =
         item.kind === 'link'
-          ? h('a', { className: 'item-body item-link', href: content, target: '_blank', rel: 'noopener noreferrer' }, content)
-          : h('pre', { className: 'item-body item-text' }, content);
+          ? h('a', { className: 'item-body item-link', href: content, target: '_blank', rel: 'noopener noreferrer', id: bodyId }, content)
+          : h('pre', { className: 'item-body item-text', id: bodyId }, content);
       const copy = h('button', { className: 'btn btn-small btn-primary', textContent: t.room.copy });
+      copy.setAttribute('aria-describedby', bodyId);
       copy.addEventListener('click', async () => {
         if (await copyText(content)) toast(t.room.copied);
       });
@@ -133,6 +138,7 @@ export function initRoom(root: HTMLElement) {
 
     const del = h('button', { className: 'btn btn-small btn-ghost btn-delete', textContent: '✕', title: t.room.delete });
     del.setAttribute('aria-label', t.room.deleteItem);
+    del.setAttribute('aria-describedby', bodyId);
     del.addEventListener('click', async () => {
       del.disabled = true;
       const res = await fetch(`${api}/items/${item.id}`, { method: 'DELETE' });
@@ -156,12 +162,25 @@ export function initRoom(root: HTMLElement) {
     expiryEl.textContent = t.room.expiresAt(date);
   }
 
-  function addItem(item: Item, prepend = true) {
-    if (items.has(item.id)) return;
+  function addItem(item: Item, prepend = true): boolean {
+    if (items.has(item.id)) return false;
     items.set(item.id, item);
     const li = renderItem(item);
     itemsEl.insertBefore(li, prepend ? itemsEl.firstChild : null);
     updateMeta();
+    return true;
+  }
+
+  // Screenreader-Ansagen für Änderungen, die von anderen Geräten kommen
+  const announcer = $('announcer');
+  function announce(text: string) {
+    announcer.textContent = '';
+    setTimeout(() => (announcer.textContent = text), 50);
+  }
+  function describe(item: Item): string {
+    if (item.kind === 'file') return item.name!;
+    const kind = item.kind === 'link' ? t.room.kindLink : t.room.kindText;
+    return `${kind}, ${item.content!.slice(0, 80)}`;
   }
 
   function removeItem(id: string) {
@@ -207,10 +226,11 @@ export function initRoom(root: HTMLElement) {
           setDevices(msg.devices);
           break;
         case 'item':
-          addItem(msg.item);
+          if (addItem(msg.item)) announce(t.room.announceItem(describe(msg.item)));
           setExpiry(msg.expiresAt);
           break;
         case 'delete':
+          if (items.has(msg.id)) announce(t.room.announceDeleted);
           removeItem(msg.id);
           setExpiry(msg.expiresAt);
           break;
@@ -295,6 +315,7 @@ export function initRoom(root: HTMLElement) {
       return;
     }
     const progress = h('progress', { max: 1, value: 0 });
+    progress.setAttribute('aria-label', file.name);
     const label = h('div', {}, `${file.name} · ${formatBytes(file.size)}`);
     const row = h('li', { className: 'upload' }, label, progress);
     uploadsEl.appendChild(row);

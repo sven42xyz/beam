@@ -35,6 +35,9 @@ const de = {
     github: 'GitHub',
     language: 'Sprache',
   },
+  a11y: {
+    skipToContent: 'Zum Inhalt springen',
+  },
   home: {
     headline: 'Vom einen Gerät aufs andere.',
     headlineAccent: 'In Sekunden.',
@@ -95,6 +98,12 @@ const de = {
     homeLabel: 'tee Startseite',
     roomCode: 'Raum-Code',
     copyLink: 'Link kopieren',
+    copyLinkLabel: (code: string) => `Raum-Code ${code}, Link zum Raum kopieren`,
+    heading: (code: string) => `Raum ${code}`,
+    announceItem: (what: string) => `Neuer Eintrag: ${what}`,
+    announceDeleted: 'Eintrag gelöscht',
+    kindText: 'Text',
+    kindLink: 'Link',
     qr: 'QR-Code',
     qrLabel: 'QR-Code zum Raum',
     textLabel: 'Text oder Link',
@@ -145,6 +154,9 @@ const en: Dict = {
   nav: {
     github: 'GitHub',
     language: 'Language',
+  },
+  a11y: {
+    skipToContent: 'Skip to content',
   },
   home: {
     headline: 'From one device to another.',
@@ -203,6 +215,12 @@ const en: Dict = {
     homeLabel: 'tee home',
     roomCode: 'Room code',
     copyLink: 'Copy link',
+    copyLinkLabel: (code: string) => `Room code ${code}, copy link to this room`,
+    heading: (code: string) => `Room ${code}`,
+    announceItem: (what: string) => `New item: ${what}`,
+    announceDeleted: 'Item deleted',
+    kindText: 'Text',
+    kindLink: 'Link',
     qr: 'QR code',
     qrLabel: 'QR code for this room',
     textLabel: 'Text or link',

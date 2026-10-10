@@ -5,6 +5,8 @@
   --surface: #171b2e;
   --surface-2: #20253c;
   --border: #2a3050;
+  /* Rahmen von Eingabefeldern: mind. 3:1 gegen Hintergrund und Karte (WCAG 1.4.11) */
+  --field-border: #626a96;
   --text: #e9ecf8;
   --muted: #8a91ad;
   --accent: #8ea2ff;
@@ -23,6 +25,7 @@
     --surface: #ffffff;
     --surface-2: #eceef8;
     --border: #d9dcec;
+    --field-border: #80869f;
     --text: #141830;
     --muted: #5c6382;
     --accent: #4257e8;
@@ -133,6 +136,45 @@ textarea {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Eingabefelder */
+input:not([type='file']),
+textarea {
+  border-color: var(--field-border) !important;
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* Sprunglink: erst bei Tastaturfokus sichtbar */
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  z-index: 200;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+/* Bewegung reduzieren: Übergänge und Einblendungen abschalten */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .sr-only {

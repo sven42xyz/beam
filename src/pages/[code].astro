@@ -1,6 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
 import Base from '../layouts/Base.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { useTranslations } from '../i18n';
 import { normalizeCode } from '../shared/codes';
@@ -24,29 +25,32 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     !exists ? (
       <>
         <SiteHeader />
-        <main class="notfound">
+        <main class="notfound" id="main">
           <h1>{t.room.notFound}</h1>
           <p class="muted">{t.room.notFoundText}</p>
           <a class="btn btn-primary" href="/">
             {t.room.toHome}
           </a>
         </main>
+        <SiteFooter />
       </>
     ) : (
       <>
         <SiteHeader compact>
-          <span class="status" id="status" data-state="connecting">
+          <span class="status" id="status" data-state="connecting" role="status">
             <span class="dot" />
             <span id="status-text">{t.room.connecting}</span>
           </span>
         </SiteHeader>
-        <main class="room" id="room" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
+        <main class="room" id="main" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
+
+        <h1 class="sr-only">{t.room.heading(code!)}</h1>
 
         <section class="card share">
           <div class="share-main">
             <div>
               <div class="muted label">{t.room.roomCode}</div>
-              <button class="code mono" id="copy-link" title={t.room.copyLink}>
+              <button class="code mono" id="copy-link" title={t.room.copyLink} aria-label={t.room.copyLinkLabel(code!)}>
                 {code}
               </button>
             </div>
@@ -55,7 +59,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
             </button>
           </div>
           <div class="qr-panel" id="qr-panel" hidden>
-            <canvas id="qr" width="220" height="220" aria-label={t.room.qrLabel} />
+            <canvas id="qr" width="220" height="220" role="img" aria-label={t.room.qrLabel} />
             <p class="muted small mono" id="room-url" />
           </div>
         </section>
@@ -66,10 +70,10 @@ Astro.response.headers.set('Cache-Control', 'no-store');
           </label>
           <textarea id="text" rows="3" placeholder={t.room.placeholder} />
           <div class="composer-actions">
+            <input id="file" type="file" multiple class="sr-only file-input" />
             <label class="btn btn-small" for="file">
               <span aria-hidden="true">＋</span> {t.room.file}
             </label>
-            <input id="file" type="file" multiple class="sr-only" />
             <span class="muted small hint">{t.room.dropHint}</span>
             <button class="btn btn-primary btn-small" id="send">
               {t.room.send}
@@ -78,6 +82,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
         </section>
 
         <ul class="uploads" id="uploads" />
+        <div class="sr-only" id="announcer" aria-live="polite"></div>
 
         <div class="list-head">
           <h2>{t.room.items}</h2>
@@ -93,6 +98,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
           <div>{t.room.dropzone}</div>
         </div>
         </main>
+        <SiteFooter />
       </>
     )
   }
@@ -173,6 +179,11 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--bg);
+  }
+  /* Das Dateifeld ist unsichtbar: Tastaturfokus am Button sichtbar machen */
+  .file-input:focus-visible + label {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .composer-actions {
     display: flex;
@@ -323,6 +334,6 @@ Astro.response.headers.set('Cache-Control', 'no-store');
 
 <script>
   import { initRoom } from '../scripts/room-client';
-  const el = document.getElementById('room');
+  const el = document.getElementById('main');
   if (el) initRoom(el);
 </script>
