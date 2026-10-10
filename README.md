@@ -133,8 +133,8 @@ npm run cf-typegen  # Env-Typen aus wrangler.jsonc neu erzeugen (worker-configur
    ```
 2. R2-Buckets anlegen (einmalig):
    ```sh
-   npx wrangler r2 bucket create tee-files
-   npx wrangler r2 bucket create tee-files-preview   # für Previews
+   npx wrangler r2 bucket create tee-files --jurisdiction eu
+   npx wrangler r2 bucket create tee-files-preview --jurisdiction eu   # für Previews
    ```
 3. Bauen und deployen:
    ```sh

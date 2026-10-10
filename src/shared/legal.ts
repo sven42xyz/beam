@@ -8,16 +8,16 @@
  * Solange `ready` false ist, werden die Seiten nicht verlinkt und liefern 404.
  */
 export const LEGAL = {
-  ready: false,
-  name: 'TODO: Vor- und Nachname',
-  street: 'TODO: Straße und Hausnummer',
-  city: 'TODO: PLZ und Ort',
+  ready: true,
+  name: 'Sven Siepermann',
+  street: 'Junkerstraße 17',
+  city: '51588 Nümbrecht',
   country: 'Deutschland',
-  email: 'TODO: kontakt@example.com',
+  email: 'sven.siepermann99@gmail.com',
   /** Zuständige Datenschutz-Aufsichtsbehörde (Bundesland des Wohnsitzes) */
   authority: {
-    name: 'TODO: Landesbeauftragte/r für Datenschutz',
-    url: 'https://www.datenschutzkonferenz-online.de/datenschutzaufsichtsbehoerden.html',
+    name: 'Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen',
+    url: 'https://www.ldi.nrw.de',
   },
   /** Stand der Datenschutzerklärung */
   updated: '2026-10-10',

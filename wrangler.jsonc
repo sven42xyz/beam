@@ -16,8 +16,8 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
 
-  // Dateien
-  "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files" }],
+  // Dateien – EU-Jurisdiktion: Daten bleiben in der EU
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files", "jurisdiction": "eu" }],
 
   // Rate Limiting pro IP (period: 10 oder 60 Sekunden)
   "ratelimits": [
@@ -52,7 +52,7 @@
     "durable_objects": {
       "bindings": [{ "name": "ROOM", "class_name": "Room" }]
     },
-    "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files-preview" }],
+    "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files-preview", "jurisdiction": "eu" }],
     "ratelimits": [
       {
         "name": "RL_CREATE",
