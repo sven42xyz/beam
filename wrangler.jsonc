@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "beam",
+  "name": "tee",
   // Eigener Entrypoint: API-Routen + Astro-Handler + Export des Durable Objects
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-06",
@@ -17,7 +17,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
 
   // Dateien
-  "r2_buckets": [{ "binding": "FILES", "bucket_name": "beam-files" }],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files" }],
 
   // Rate Limiting pro IP (period: 10 oder 60 Sekunden)
   "ratelimits": [
@@ -33,9 +33,12 @@
     }
   ],
 
-  // Turnstile (Raumerstellung). Widget „Beam Raumerstellung“. Leer = deaktiviert.
+  // Turnstile (Raumerstellung). Widget „tee Raumerstellung“. Leer = deaktiviert.
   // Secret: `wrangler secret put TURNSTILE_SECRET_KEY`. Lokal: .dev.vars (siehe .dev.vars.example)
   "vars": { "TURNSTILE_SITE_KEY": "0x4AAAAAAFTFRdi6GsGoj81e" },
+
+  // Eigene Domain (DNS-Record wird beim Deploy automatisch angelegt)
+  "routes": [{ "pattern": "tee.chapter42.de", "custom_domain": true }],
 
   // workers.dev-URLs für Produktion und Previews
   "workers_dev": true,
@@ -49,7 +52,7 @@
     "durable_objects": {
       "bindings": [{ "name": "ROOM", "class_name": "Room" }]
     },
-    "r2_buckets": [{ "binding": "FILES", "bucket_name": "beam-files-preview" }],
+    "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files-preview" }],
     "ratelimits": [
       {
         "name": "RL_CREATE",

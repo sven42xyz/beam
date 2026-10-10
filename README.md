@@ -1,6 +1,10 @@
-# Beam
+# tee
+
+**Live:** https://tee.chapter42.de
 
 Text, Links und Dateien schnell zwischen Geräten austauschen (z. B. Handy → Laptop), ohne Login.
+
+Der Name kommt vom Unix-Befehl `tee`: ein Eingang, viele Ausgänge. Was ein Gerät in einen Raum schickt, kommt auf allen anderen an.
 
 1. Auf der Startseite **„Raum erstellen“** klicken. Du bekommst einen 6-stelligen Code (ohne 0/O/1/I/L) und einen QR-Code.
 2. Auf dem zweiten Gerät `https://<domain>/<CODE>` öffnen, den QR-Code scannen oder den Code auf der Startseite eingeben.
@@ -129,27 +133,28 @@ npm run cf-typegen  # Env-Typen aus wrangler.jsonc neu erzeugen (worker-configur
    ```
 2. R2-Buckets anlegen (einmalig):
    ```sh
-   npx wrangler r2 bucket create beam-files
-   npx wrangler r2 bucket create beam-files-preview   # für Previews
+   npx wrangler r2 bucket create tee-files
+   npx wrangler r2 bucket create tee-files-preview   # für Previews
    ```
 3. Bauen und deployen:
    ```sh
    npm run deploy    # astro build && wrangler deploy
    ```
    Beim ersten Deploy legt die Migration `v1` die SQLite-Klasse `Room` an.
-4. **Eigene Domain** (z. B. `beam.example.com`): Im Cloudflare-Dashboard unter *Workers & Pages → beam → Settings → Domains & Routes → Add → Custom Domain* eintragen. Alternativ in `wrangler.jsonc`:
+4. **Eigene Domain**: Steht in `wrangler.jsonc` unter `routes` (aktuell `tee.chapter42.de`). Die Zone muss im selben Cloudflare-Account liegen, dann legt der Deploy den DNS-Record selbst an:
    ```jsonc
-   "routes": [{ "pattern": "beam.example.com", "custom_domain": true }]
+   "routes": [{ "pattern": "tee.chapter42.de", "custom_domain": true }]
    ```
 
 ### Turnstile einrichten
 
-Für Beam ist das schon erledigt: Das Widget „Beam Raumerstellung“ existiert, der Site Key steht in `wrangler.jsonc`, und der Secret Key liegt als Secret für Produktion und die Preview `main`. Für ein neues Setup:
+Für tee ist das schon erledigt: Das Widget „tee Raumerstellung“ existiert, der Site Key steht in `wrangler.jsonc`, und der Secret Key liegt als Secret für Produktion und die Preview `main`. Für ein neues Setup:
 
 ```sh
 npx wrangler login   # braucht das Recht challenge-widgets.write
-npx wrangler turnstile widget create "Beam Raumerstellung" \
-  --domain beam.<account>.workers.dev --domain main-beam.<account>.workers.dev --mode managed
+npx wrangler turnstile widget create "tee Raumerstellung" \
+  --domain tee.chapter42.de --domain tee.<account>.workers.dev \
+  --domain main-tee.<account>.workers.dev --mode managed
 ```
 
 1. Den **Site Key** aus der Ausgabe in `wrangler.jsonc` unter `vars.TURNSTILE_SITE_KEY` und `previews.vars.TURNSTILE_SITE_KEY` eintragen.
@@ -165,13 +170,13 @@ Solange einer der beiden Keys fehlt, bleibt Turnstile aus. Das Rate Limiting gre
 
 ### Previews
 
-Unter `previews` in `wrangler.jsonc` laufen Previews mit eigenem R2-Bucket (`beam-files-preview`) und eigenen Rate-Limit-Namespaces. Voraussetzung: Der Worker wurde mindestens einmal regulär deployt.
+Unter `previews` in `wrangler.jsonc` laufen Previews mit eigenem R2-Bucket (`tee-files-preview`) und eigenen Rate-Limit-Namespaces. Voraussetzung: Der Worker wurde mindestens einmal regulär deployt.
 
 ```sh
 npm run deploy:preview -- --name mein-feature   # ohne --name: aktueller Git-Branch
 ```
 
-URL: `https://<name>-beam.<account>.workers.dev`. Dazu kommt pro Deployment eine eindeutige URL.
+URL: `https://<name>-tee.<account>.workers.dev`. Dazu kommt pro Deployment eine eindeutige URL.
 Löschen mit `npx wrangler preview delete --name <name>`. `wrangler preview` ist derzeit Open Beta.
 
 Logs live ansehen:

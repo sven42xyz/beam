@@ -19,7 +19,7 @@ if (!exists) Astro.response.status = 404;
 Astro.response.headers.set('Cache-Control', 'no-store');
 ---
 
-<Base title={exists ? `Beam · ${code}` : `Beam · ${t.room.titleNotFound}`}>
+<Base title={exists ? `tee · ${code}` : `tee · ${t.room.titleNotFound}`}>
   {
     !exists ? (
       <>

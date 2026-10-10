@@ -1,12 +1,12 @@
 ---
-// Dekorative Animation: Eine Datei wird vom Handy zum Laptop gebeamt.
+// Dekorative Animation: Eine Datei fliegt als Funke vom Handy zum Laptop.
 // Ablauf (6 s, Schleife): Datei erscheint → wackelt → schrumpft zum Funken → fliegt im Bogen
 // mit Lichtspur → landet → Datei baut sich auf dem Laptop wieder auf → Häkchen.
 // Der Funke folgt der Kurve M90 70 Q310 -30 530 73: x ist darin linear, y quadratisch;
 // die Keyframes von .spark-fly sind Stützpunkte dieser Kurve.
 ---
 
-<div class="beam-scene" aria-hidden="true">
+<div class="transfer-scene" aria-hidden="true">
   <svg viewBox="0 0 640 150" preserveAspectRatio="xMidYMid meet">
     <defs>
       <radialGradient id="spark-glow">
@@ -64,7 +64,7 @@
 </div>
 
 <style>
-  .beam-scene {
+  .transfer-scene {
     width: 100%;
     max-width: 720px;
     margin: 0 auto 8px;

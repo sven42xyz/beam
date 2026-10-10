@@ -28,7 +28,7 @@ const maxMb = MAX_FILE_BYTES / 1024 / 1024;
 
 const de = {
   meta: {
-    title: 'Beam – Text & Dateien zwischen Geräten teilen',
+    title: 'tee – Text & Dateien zwischen Geräten teilen',
     description: 'Text, Links und Dateien schnell zwischen Geräten austauschen – ohne Login.',
   },
   nav: {
@@ -53,7 +53,7 @@ const de = {
       },
       { title: 'Teilen', text: 'Text, Links und Dateien tauchen sofort auf allen verbundenen Geräten auf.' },
     ],
-    featuresTitle: 'Was Beam kann',
+    featuresTitle: 'Was tee kann',
     features: {
       live: { title: 'Live-Sync', text: 'Neue Einträge erscheinen ohne Neuladen auf allen Geräten im Raum.' },
       file: { title: `Dateien bis ${maxMb} MB`, text: 'Per Auswahl, Drag & Drop oder direkt aus der Zwischenablage.' },
@@ -66,7 +66,7 @@ const de = {
     faq: [
       {
         q: 'Wer kann meine Inhalte sehen?',
-        a: 'Alle, die den Raum-Code kennen. Teile ihn also nur mit deinen eigenen Geräten oder Leuten, denen du vertraust. Die Verbindung ist per HTTPS verschlüsselt, die Inhalte selbst liegen aber unverschlüsselt auf den Servern. Für vertrauliche Dokumente ist Beam nicht gedacht.',
+        a: 'Alle, die den Raum-Code kennen. Teile ihn also nur mit deinen eigenen Geräten oder Leuten, denen du vertraust. Die Verbindung ist per HTTPS verschlüsselt, die Inhalte selbst liegen aber unverschlüsselt auf den Servern. Für vertrauliche Dokumente ist tee nicht gedacht.',
       },
       {
         q: 'Wie lange bleiben die Daten gespeichert?',
@@ -76,11 +76,15 @@ const de = {
         q: 'Gibt es Limits?',
         a: `Pro Datei maximal ${maxMb} MB und pro Raum maximal ${MAX_ITEMS} Einträge. Damit niemand den Dienst überlastet, ist auch die Anzahl der Anfragen pro Minute begrenzt.`,
       },
-      { q: 'Brauche ich eine App?', a: 'Nein. Beam läuft in jedem aktuellen Browser, auf dem Handy genauso wie am Laptop.' },
-      { q: 'Was kostet das?', a: 'Nichts. Beam ist ein kleines Open-Source-Projekt ohne Werbung und ohne Tracking.' },
+      { q: 'Brauche ich eine App?', a: 'Nein. tee läuft in jedem aktuellen Browser, auf dem Handy genauso wie am Laptop.' },
+      { q: 'Was kostet das?', a: 'Nichts. tee ist ein kleines Open-Source-Projekt ohne Werbung und ohne Tracking.' },
+      {
+        q: 'Warum heißt das tee?',
+        a: 'Nach dem Unix-Befehl tee: Er nimmt einen Datenstrom und verteilt ihn auf mehrere Ausgänge gleichzeitig. Genau das macht ein Raum. Was ein Gerät schickt, kommt auf allen anderen an. Mit Tee zum Trinken hat es nichts zu tun.',
+      },
     ],
     ctaTitle: 'Bereit?',
-    footer: 'Beam · Open Source',
+    footer: 'tee · Open Source',
     support: 'Unterstützen',
   },
   room: {
@@ -88,7 +92,7 @@ const de = {
     notFound: 'Raum nicht gefunden',
     notFoundText: 'Der Code ist ungültig oder der Raum ist abgelaufen (24 h ohne Aktivität).',
     toHome: 'Zur Startseite',
-    homeLabel: 'Beam Startseite',
+    homeLabel: 'tee Startseite',
     roomCode: 'Raum-Code',
     copyLink: 'Link kopieren',
     qr: 'QR-Code',
@@ -135,7 +139,7 @@ export type Dict = typeof de;
 
 const en: Dict = {
   meta: {
-    title: 'Beam – Share text & files between devices',
+    title: 'tee – Share text & files between devices',
     description: 'Quickly move text, links and files between your devices – no login.',
   },
   nav: {
@@ -157,7 +161,7 @@ const en: Dict = {
       { title: 'Connect a second device', text: 'Scan the QR code or type in the code. No app, no account.' },
       { title: 'Share', text: 'Text, links and files show up instantly on every connected device.' },
     ],
-    featuresTitle: 'What Beam does',
+    featuresTitle: 'What tee does',
     features: {
       live: { title: 'Live sync', text: 'New items appear on every device in the room without reloading.' },
       file: { title: `Files up to ${maxMb} MB`, text: 'Pick them, drag & drop them or paste them from the clipboard.' },
@@ -170,7 +174,7 @@ const en: Dict = {
     faq: [
       {
         q: 'Who can see my content?',
-        a: 'Anyone who knows the room code. Only share it with your own devices or people you trust. The connection is encrypted via HTTPS, but the content itself is stored unencrypted on the servers. Beam is not meant for confidential documents.',
+        a: 'Anyone who knows the room code. Only share it with your own devices or people you trust. The connection is encrypted via HTTPS, but the content itself is stored unencrypted on the servers. tee is not meant for confidential documents.',
       },
       {
         q: 'How long is data kept?',
@@ -180,11 +184,15 @@ const en: Dict = {
         q: 'Are there limits?',
         a: `Up to ${maxMb} MB per file and ${MAX_ITEMS} items per room. The number of requests per minute is limited too, so nobody can overload the service.`,
       },
-      { q: 'Do I need an app?', a: 'No. Beam runs in any modern browser, on your phone just like on your laptop.' },
-      { q: 'What does it cost?', a: 'Nothing. Beam is a small open-source project without ads or tracking.' },
+      { q: 'Do I need an app?', a: 'No. tee runs in any modern browser, on your phone just like on your laptop.' },
+      { q: 'What does it cost?', a: 'Nothing. tee is a small open-source project without ads or tracking.' },
+      {
+        q: 'Why is it called tee?',
+        a: 'After the Unix command tee: it takes one stream and copies it to several outputs at once. That is exactly what a room does. Whatever one device sends arrives on all the others.',
+      },
     ],
     ctaTitle: 'Ready?',
-    footer: 'Beam · Open source',
+    footer: 'tee · Open source',
     support: 'Support',
   },
   room: {
@@ -192,7 +200,7 @@ const en: Dict = {
     notFound: 'Room not found',
     notFoundText: 'The code is invalid or the room has expired (24 h without activity).',
     toHome: 'Back to start',
-    homeLabel: 'Beam home',
+    homeLabel: 'tee home',
     roomCode: 'Room code',
     copyLink: 'Copy link',
     qr: 'QR code',

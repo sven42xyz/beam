@@ -1,7 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
 import Base from '../layouts/Base.astro';
-import BeamScene from '../components/BeamScene.astro';
+import TransferScene from '../components/TransferScene.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { useTranslations } from '../i18n';
 import { CODE_LENGTH } from '../shared/codes';
@@ -50,7 +50,7 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
       </div>
     </section>
 
-    <BeamScene />
+    <TransferScene />
 
     <section class="section" aria-labelledby="how">
       <h2 id="how">{t.home.howTitle}</h2>
