@@ -5,13 +5,12 @@ import TransferScene from '../components/TransferScene.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { useTranslations } from '../i18n';
-import { CODE_LENGTH } from '../shared/codes';
 
 const { lang } = Astro.locals;
 const t = useTranslations(lang);
 const turnstileSiteKey = env.TURNSTILE_SITE_KEY || '';
 
-const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
+const featureIcons = ['live', 'file', 'lock', 'key', 'clock', 'code'] as const;
 ---
 
 <Base>
@@ -26,6 +25,15 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
 
       <div class="card actions" id="start" data-lang={lang} data-turnstile-sitekey={turnstileSiteKey}>
         <button class="btn btn-primary btn-big js-create">{t.home.create}</button>
+        <div class="encrypt-option">
+          <label class="encrypt-toggle">
+            <input type="checkbox" id="encrypt" checked aria-describedby="encrypt-hint" />
+            <span>{t.home.encryptLabel}</span>
+          </label>
+          <p class="muted small" id="encrypt-hint" data-on={t.home.encryptOnHint} data-off={t.home.encryptOffHint}>
+            {t.home.encryptOnHint}
+          </p>
+        </div>
 
         <div class="divider"><span>{t.home.orEnterCode}</span></div>
 
@@ -38,7 +46,7 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
             inputmode="text"
             autocapitalize="characters"
             spellcheck="false"
-            maxlength={CODE_LENGTH + 2}
+            maxlength={300}
             placeholder="ABC234"
             required
           />
@@ -81,7 +89,7 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
                   {icon === 'file' && <><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /></>}
                   {icon === 'key' && <><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M17 6l3 3" /></>}
                   {icon === 'clock' && <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>}
-                  {icon === 'copy' && <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></>}
+                  {icon === 'lock' && <><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>}
                   {icon === 'code' && <path d="M8 6l-6 6 6 6M16 6l6 6-6 6" />}
                 </svg>
               </span>
@@ -200,6 +208,25 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
   }
   .turnstile:empty {
     display: none;
+  }
+  .encrypt-option {
+    margin-top: -4px;
+  }
+  .encrypt-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .encrypt-toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+  }
+  .encrypt-option p {
+    margin: 4px 0 0 28px;
   }
   .note {
     margin: 0;
@@ -355,6 +382,7 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
   import { apiErrorMessage, isLang, useTranslations } from '../i18n';
   import { normalizeCode } from '../shared/codes';
   import { getTurnstileToken, initTurnstile, resetTurnstile } from '../scripts/turnstile';
+  import { generateKey } from '../scripts/crypto';
 
   const card = document.getElementById('start') as HTMLDivElement;
   const t = useTranslations(isLang(card.dataset.lang) ? card.dataset.lang : 'en');
@@ -383,11 +411,12 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ turnstileToken }),
+        body: JSON.stringify({ turnstileToken, encrypted: encryptBox.checked }),
       });
       const data = (await res.json()) as { code?: string; error?: string };
       if (!res.ok) throw new Error(apiErrorMessage(t, data.error, res.status));
-      location.href = `/${data.code}`;
+      // Der Schlüssel entsteht hier und steht nur im Fragment: Browser schicken es nie an den Server
+      location.href = encryptBox.checked ? `/${data.code}#k=${generateKey()}` : `/${data.code}`;
     } catch (e) {
       showError(e instanceof Error ? e.message : t.errors.createFailed);
       document.getElementById('start')?.scrollIntoView({ behavior: 'smooth' });
@@ -398,9 +427,27 @@ const featureIcons = ['live', 'file', 'key', 'clock', 'copy', 'code'] as const;
 
   createBtns.forEach((b) => b.addEventListener('click', createRoom));
 
+  const encryptBox = document.getElementById('encrypt') as HTMLInputElement;
+  const encryptHint = document.getElementById('encrypt-hint') as HTMLParagraphElement;
+  encryptBox.addEventListener('change', () => {
+    encryptHint.textContent = (encryptBox.checked ? encryptHint.dataset.on : encryptHint.dataset.off) ?? '';
+  });
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const code = normalizeCode(input.value);
+    // Ganzer Link eingefügt (z. B. mit Schlüssel)? Dann direkt dorthin
+    const value = input.value.trim();
+    try {
+      const url = new URL(value);
+      const linkCode = normalizeCode(url.pathname.slice(1));
+      if (linkCode && url.host === location.host) {
+        location.href = `/${linkCode}${url.hash}`;
+        return;
+      }
+    } catch {
+      // kein Link, sondern ein Code
+    }
+    const code = normalizeCode(value);
     if (!code) return showError(t.errors.invalidCode);
     location.href = `/${code}`;
   });

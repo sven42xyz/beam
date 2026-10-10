@@ -17,7 +17,7 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
     en ? (
       <>
         <h1>Privacy policy</h1>
-        <p class="lead">As of {updated}. tee collects as little as possible: no accounts, no tracking, no analytics, no ads.</p>
+        <p class="lead">As of {updated}. tee collects as little as possible: no accounts, no tracking, no analytics, no ads. By default, content is end-to-end encrypted and cannot be read by me.</p>
 
         <h2>Who is responsible</h2>
         <address>
@@ -36,7 +36,13 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
 
         <h3>Content you share</h3>
         <p>
-          Text, links and files you send into a room are stored so that the other devices in the room can retrieve them. Anyone who knows the room code can see them. The content is not encrypted on the server and not evaluated. 24 hours after the last activity in a room, the room and all of its files are deleted automatically. You can delete individual items earlier yourself. A room holds at most {MAX_ITEMS} items.
+          Text, links and files you send into a room are stored so that the other devices in the room can retrieve them. 24 hours after the last activity in a room, the room and all of its files are deleted automatically. You can delete individual items earlier yourself. A room holds at most {MAX_ITEMS} items.
+        </p>
+        <p>
+          <strong>Encrypted rooms (default):</strong> Text, links, files, file names and file types are encrypted in your browser (AES-256-GCM) before they are sent. The key is part of the room link after the “#” and is never transmitted to the server. I therefore cannot read the content. What remains visible to the server is the number of items, their size and the time they were created.
+        </p>
+        <p>
+          <strong>Unencrypted rooms:</strong> If you untick “End-to-end encrypted” when creating a room, the content is stored in plain form and can be seen by anyone who knows the room code. It is not evaluated.
         </p>
         <p>Legal basis: Art. 6 (1) (b) GDPR, because storing the content is the service you are using.</p>
 
@@ -85,7 +91,7 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
     ) : (
       <>
         <h1>Datenschutz</h1>
-        <p class="lead">Stand: {updated}. tee erhebt so wenig wie möglich: keine Accounts, kein Tracking, keine Analyse, keine Werbung.</p>
+        <p class="lead">Stand: {updated}. tee erhebt so wenig wie möglich: keine Accounts, kein Tracking, keine Analyse, keine Werbung. Inhalte sind standardmäßig Ende-zu-Ende verschlüsselt und für mich nicht lesbar.</p>
 
         <h2>Verantwortlich</h2>
         <address>
@@ -104,7 +110,13 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
 
         <h3>Geteilte Inhalte</h3>
         <p>
-          Texte, Links und Dateien, die du in einen Raum schickst, werden gespeichert, damit die anderen Geräte im Raum sie abrufen können. Sichtbar sind sie für alle, die den Raum-Code kennen. Die Inhalte liegen unverschlüsselt auf dem Server und werden nicht ausgewertet. 24 Stunden nach der letzten Aktivität im Raum werden der Raum und alle Dateien automatisch gelöscht. Einzelne Einträge kannst du vorher selbst löschen. Ein Raum fasst höchstens {MAX_ITEMS} Einträge.
+          Texte, Links und Dateien, die du in einen Raum schickst, werden gespeichert, damit die anderen Geräte im Raum sie abrufen können. 24 Stunden nach der letzten Aktivität im Raum werden der Raum und alle Dateien automatisch gelöscht. Einzelne Einträge kannst du vorher selbst löschen. Ein Raum fasst höchstens {MAX_ITEMS} Einträge.
+        </p>
+        <p>
+          <strong>Verschlüsselte Räume (Standard):</strong> Texte, Links, Dateien, Dateinamen und Dateitypen werden in deinem Browser verschlüsselt (AES-256-GCM), bevor sie gesendet werden. Der Schlüssel steckt im Raum-Link hinter dem „#“ und wird nie an den Server übertragen. Ich kann die Inhalte deshalb nicht lesen. Für den Server sichtbar bleiben nur Anzahl, Größe und Zeitpunkt der Einträge.
+        </p>
+        <p>
+          <strong>Unverschlüsselte Räume:</strong> Wer beim Erstellen „Ende-zu-Ende verschlüsselt“ abwählt, bekommt einen Raum, dessen Inhalte unverschlüsselt gespeichert werden und für alle sichtbar sind, die den Raum-Code kennen. Sie werden nicht ausgewertet.
         </p>
         <p>Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO, denn das Speichern der Inhalte ist der Dienst, den du nutzt.</p>
 

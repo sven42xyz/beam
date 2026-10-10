@@ -1,5 +1,5 @@
 import { generateCode, normalizeCode } from '../shared/codes';
-import { MAX_FILE_BYTES, MAX_TEXT_BYTES } from '../shared/limits';
+import { MAX_CIPHERTEXT_CHARS, MAX_ENC_META_CHARS, MAX_FILE_BYTES, MAX_TEXT_BYTES } from '../shared/limits';
 import type { RoomError } from './room';
 
 const json = (data: unknown, status = 200, headers?: HeadersInit) =>
@@ -8,10 +8,17 @@ const json = (data: unknown, status = 200, headers?: HeadersInit) =>
 const error = (status: number, code: string, message: string) => json({ error: code, message }, status);
 
 function roomError(e: RoomError): Response {
-  return e === 'room_full'
-    ? error(409, 'room_full', 'Der Raum ist voll (max. 50 Einträge).')
-    : error(404, 'not_found', 'Raum nicht gefunden oder abgelaufen.');
+  switch (e) {
+    case 'room_full':
+      return error(409, 'room_full', 'Room is full (max. 50 items).');
+    case 'wrong_mode':
+      return error(409, 'wrong_mode', 'Encryption mode does not match this room.');
+    default:
+      return error(404, 'not_found', 'Room not found or expired.');
+  }
 }
+
+const BASE64URL = /^[A-Za-z0-9_-]+$/;
 
 export function roomStub(env: Env, code: string) {
   return env.ROOM.get(env.ROOM.idFromName(code));
@@ -85,7 +92,7 @@ async function createRoom(request: Request, env: Env) {
   const limited = await rateLimited(env.RL_CREATE, request);
   if (limited) return limited;
 
-  let body: { turnstileToken?: unknown } = {};
+  let body: { turnstileToken?: unknown; encrypted?: unknown } = {};
   try {
     body = await request.json();
   } catch {
@@ -97,7 +104,7 @@ async function createRoom(request: Request, env: Env) {
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateCode();
-    if (await roomStub(env, code).init(code)) return json({ code }, 201);
+    if (await roomStub(env, code).init(code, body.encrypted === true)) return json({ code }, 201);
   }
   return error(503, 'no_code', 'Konnte keinen freien Code finden. Bitte erneut versuchen.');
 }
@@ -107,21 +114,30 @@ async function postText(request: Request, env: Env, code: string) {
   if (limited) return limited;
 
   const length = Number(request.headers.get('Content-Length') ?? 0);
-  if (length > MAX_TEXT_BYTES + 1024) return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
+  if (length > MAX_CIPHERTEXT_CHARS + 1024) return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
 
-  let body: { text?: unknown };
+  let body: { text?: unknown; ciphertext?: unknown };
   try {
     body = await request.json();
   } catch {
     return error(400, 'bad_request', 'Ungültiger JSON-Body.');
   }
+  // Verschlüsselter Raum: Chiffretext unverändert speichern, der Server kann ihn nicht lesen
+  if (typeof body.ciphertext === 'string') {
+    const ciphertext = body.ciphertext;
+    if (!ciphertext || !BASE64URL.test(ciphertext)) return error(400, 'bad_request', 'Invalid ciphertext.');
+    if (ciphertext.length > MAX_CIPHERTEXT_CHARS) return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
+    const result = await roomStub(env, code).addText({ ciphertext });
+    return result.ok ? json(result.value, 201) : roomError(result.error);
+  }
+
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!text) return error(400, 'empty', 'Text ist leer.');
   if (new TextEncoder().encode(text).length > MAX_TEXT_BYTES) {
     return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
   }
 
-  const result = await roomStub(env, code).addText(text, isLink(text) ? 'link' : 'text');
+  const result = await roomStub(env, code).addText({ text, kind: isLink(text) ? 'link' : 'text' });
   return result.ok ? json(result.value, 201) : roomError(result.error);
 }
 
@@ -135,11 +151,21 @@ async function uploadFile(request: Request, env: Env, code: string) {
   if (!Number.isSafeInteger(size) || size < 0) return error(400, 'bad_request', 'Ungültige Content-Length.');
   if (size > MAX_FILE_BYTES) return error(413, 'too_large', 'Datei ist zu groß (max. 100 MB).');
 
-  const name = sanitizeFilename(request.headers.get('X-Filename'));
-  const mime = request.headers.get('Content-Type')?.split(';')[0].trim() || 'application/octet-stream';
+  // Verschlüsselt: X-Filename enthält Chiffretext (Name, Typ, Originalgröße), der Inhalt ist opak
+  const encrypted = request.headers.get('X-Encrypted') === '1';
+  let name: string;
+  let mime: string;
+  if (encrypted) {
+    name = request.headers.get('X-Filename') ?? '';
+    if (!BASE64URL.test(name) || name.length > MAX_ENC_META_CHARS) return error(400, 'bad_request', 'Invalid metadata.');
+    mime = 'application/octet-stream';
+  } else {
+    name = sanitizeFilename(request.headers.get('X-Filename'));
+    mime = request.headers.get('Content-Type')?.split(';')[0].trim() || 'application/octet-stream';
+  }
 
   const stub = roomStub(env, code);
-  const reserved = await stub.reserveFile(name, size, mime);
+  const reserved = await stub.reserveFile(name, size, mime, encrypted);
   if (!reserved.ok) return roomError(reserved.error);
   const { id, r2Key } = reserved.value;
 
@@ -174,7 +200,8 @@ async function downloadFile(env: Env, code: string, id: string) {
     headers: {
       'Content-Type': meta.mime,
       'Content-Length': String(object.size),
-      'Content-Disposition': contentDisposition(meta.name),
+      // Verschlüsselte Dateien entschlüsselt der Browser selbst und vergibt dabei den echten Namen
+      'Content-Disposition': meta.encrypted ? 'attachment; filename="tee-encrypted.bin"' : contentDisposition(meta.name),
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     },

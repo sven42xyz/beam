@@ -14,21 +14,21 @@ type ItemRow = {
   created_at: number;
 };
 
-export type RoomError = 'not_found' | 'room_full';
+/** wrong_mode: Klartext an einen verschlüsselten Raum (oder umgekehrt) */
+export type RoomError = 'not_found' | 'room_full' | 'wrong_mode';
 export type Result<T> = { ok: true; value: T } | { ok: false; error: RoomError };
 
-function toItem(row: ItemRow): Item {
+function toItem(row: ItemRow, enc: boolean): Item {
+  const base = { id: row.id, kind: row.kind, createdAt: row.created_at, ...(enc && { enc: true }) };
   if (row.kind === 'file') {
     return {
-      id: row.id,
-      kind: row.kind,
-      createdAt: row.created_at,
+      ...base,
       name: row.file_name ?? 'datei',
       size: row.file_size ?? 0,
       mime: row.mime ?? 'application/octet-stream',
     };
   }
-  return { id: row.id, kind: row.kind, createdAt: row.created_at, content: row.content ?? '' };
+  return { ...base, content: row.content ?? '' };
 }
 
 /**
@@ -83,6 +83,15 @@ export class Room extends DurableObject<Env> {
     return this.getMeta('code');
   }
 
+  /** Ende-zu-Ende verschlüsselter Raum: Inhalte sind Chiffretext, den der Server nicht lesen kann. */
+  private get encrypted(): boolean {
+    return this.getMeta('encrypted') === '1';
+  }
+
+  private item(row: ItemRow): Item {
+    return toItem(row, this.encrypted);
+  }
+
   /** Aktivität: Ablaufzeit auf jetzt + 24 h verschieben. */
   private async touch(): Promise<number> {
     const now = Date.now();
@@ -95,10 +104,11 @@ export class Room extends DurableObject<Env> {
   // ---------- RPC ----------
 
   /** Legt den Raum an. false, wenn der Code schon vergeben ist. */
-  async init(code: string): Promise<boolean> {
+  async init(code: string, encrypted: boolean): Promise<boolean> {
     if (this.code) return false;
     this.createSchema();
     this.setMeta('code', code);
+    this.setMeta('encrypted', encrypted ? '1' : '0');
     this.setMeta('created_at', String(Date.now()));
     await this.touch();
     return true;
@@ -108,8 +118,21 @@ export class Room extends DurableObject<Env> {
     return this.code !== null;
   }
 
-  async addText(content: string, kind: 'text' | 'link'): Promise<Result<Item>> {
+  /** null, wenn es den Raum nicht (mehr) gibt. */
+  info(): { encrypted: boolean } | null {
+    return this.code ? { encrypted: this.encrypted } : null;
+  }
+
+  /**
+   * Klartext-Räume bekommen `{ text, kind }`, verschlüsselte Räume `{ ciphertext }`.
+   * Die Art (Text/Link) eines verschlüsselten Eintrags steht im Chiffretext.
+   */
+  async addText(payload: { text: string; kind: 'text' | 'link' } | { ciphertext: string }): Promise<Result<Item>> {
     if (!this.code) return { ok: false, error: 'not_found' };
+    const isCipher = 'ciphertext' in payload;
+    if (isCipher !== this.encrypted) return { ok: false, error: 'wrong_mode' };
+    const content = isCipher ? payload.ciphertext : payload.text;
+    const kind = isCipher ? 'text' : payload.kind;
     if (this.countItems() >= MAX_ITEMS) return { ok: false, error: 'room_full' };
 
     const row: ItemRow = {
@@ -124,15 +147,22 @@ export class Room extends DurableObject<Env> {
       created_at: Date.now(),
     };
     this.insert(row);
-    const item = toItem(row);
+    const item = this.item(row);
     this.broadcast({ type: 'item', item, expiresAt: await this.touch() });
     return { ok: true, value: item };
   }
 
   /** Reserviert einen Platz für einen Upload. Der Eintrag ist bis commitFile() unsichtbar. */
-  async reserveFile(name: string, size: number, mime: string): Promise<Result<{ id: string; r2Key: string }>> {
+  /** In verschlüsselten Räumen ist `name` der Chiffretext von Name, Typ und Originalgröße. */
+  async reserveFile(
+    name: string,
+    size: number,
+    mime: string,
+    encrypted: boolean,
+  ): Promise<Result<{ id: string; r2Key: string }>> {
     const code = this.code;
     if (!code) return { ok: false, error: 'not_found' };
+    if (encrypted !== this.encrypted) return { ok: false, error: 'wrong_mode' };
     await this.cleanupStalePending();
     if (this.countItems() >= MAX_ITEMS) return { ok: false, error: 'room_full' };
 
@@ -158,7 +188,7 @@ export class Room extends DurableObject<Env> {
     this.sql.exec(`UPDATE items SET status = 'ready', created_at = ? WHERE id = ? AND status = 'pending'`, Date.now(), id);
     const row = this.getRow(id);
     if (!row || row.status !== 'ready') return { ok: false, error: 'not_found' };
-    const item = toItem(row);
+    const item = this.item(row);
     this.broadcast({ type: 'item', item, expiresAt: await this.touch() });
     return { ok: true, value: item };
   }
@@ -170,7 +200,7 @@ export class Room extends DurableObject<Env> {
     if (row.r2_key) await this.env.FILES.delete(row.r2_key);
   }
 
-  getFile(id: string): { r2Key: string; name: string; size: number; mime: string } | null {
+  getFile(id: string): { r2Key: string; name: string; size: number; mime: string; encrypted: boolean } | null {
     const row = this.getRow(id);
     if (!row || row.kind !== 'file' || row.status !== 'ready' || !row.r2_key) return null;
     return {
@@ -178,6 +208,7 @@ export class Room extends DurableObject<Env> {
       name: row.file_name ?? 'datei',
       size: row.file_size ?? 0,
       mime: row.mime ?? 'application/octet-stream',
+      encrypted: this.encrypted,
     };
   }
 
@@ -203,7 +234,7 @@ export class Room extends DurableObject<Env> {
 
     const expiresAt = await this.touch();
     const devices = this.ctx.getWebSockets().length;
-    server.send(JSON.stringify({ type: 'init', items: this.listItems(), devices, expiresAt } satisfies ServerMessage));
+    server.send(JSON.stringify({ type: 'init', items: this.listItems(), devices, expiresAt, encrypted: this.encrypted } satisfies ServerMessage));
     this.broadcast({ type: 'devices', count: devices }, server);
 
     return new Response(null, { status: 101, webSocket: client });
@@ -283,7 +314,7 @@ export class Room extends DurableObject<Env> {
     return this.sql
       .exec<ItemRow>(`SELECT * FROM items WHERE status = 'ready' ORDER BY created_at DESC`)
       .toArray()
-      .map(toItem);
+      .map((row) => this.item(row));
   }
 
   private async cleanupStalePending() {

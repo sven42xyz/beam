@@ -33,14 +33,27 @@ Browser ──HTTP──▶ Worker (src/worker.ts)
 - **Turnstile** schützt die Raumerstellung. Der Worker prüft das Token per `siteverify`. Ohne konfigurierte Keys ist Turnstile deaktiviert.
 - **Sprachen: Deutsch und Englisch.** Die Middleware (`src/middleware.ts`) wählt die Sprache über das Cookie `lang`, sonst über `Accept-Language`, sonst Englisch. `?lang=de` bzw. `?lang=en` setzt das Cookie und leitet auf die URL ohne Parameter um. Raum-URLs bleiben sprachneutral (`/<CODE>`). Texte stehen in `src/i18n/index.ts`.
 
+### Ende-zu-Ende-Verschlüsselung
+
+Räume sind standardmäßig Ende-zu-Ende verschlüsselt (`src/scripts/crypto.ts`, Web Crypto, AES-256-GCM):
+
+- Beim Erstellen erzeugt der Browser einen zufälligen 256-bit-Schlüssel und hängt ihn als Fragment an den Link: `/ABC234#k=…`. Browser schicken das Fragment nie an den Server, QR-Code und „Link kopieren“ enthalten es.
+- **Texte/Links**: `{ k: 'text'|'link', c }` als JSON verschlüsselt, Base64url(IV | Chiffretext).
+- **Dateien**: in 1-MiB-Blöcken. Kopf `TEE1 | Nonce-Präfix[8] | Blockgröße`, IV pro Block = Präfix | Blockindex, AAD markiert den letzten Block (erkennt Vertauschen und Abschneiden). Name, Typ und Originalgröße stehen verschlüsselt im `X-Filename`-Header (`X-Encrypted: 1`).
+- Der Server speichert nur Chiffretext und sieht Anzahl, Größe und Zeitpunkt der Einträge sowie Text vs. Datei. Er erzwingt den Modus des Raums (`409 wrong_mode`).
+- Wer den Code ohne Schlüssel öffnet, sieht eine Sperre und kann den Link einfügen.
+- Wer beim Erstellen „Ende-zu-Ende verschlüsselt“ abwählt, bekommt einen Raum wie früher: Beitritt nur mit dem Code, Inhalte im Klartext.
+
+> Web Crypto gibt es nur in sicheren Kontexten (HTTPS, `localhost`). Beim Testen über `http://<LAN-IP>` funktionieren verschlüsselte Räume deshalb nicht, unverschlüsselte schon.
+
 ### API
 
 | Methode & Pfad | Zweck |
 |---|---|
-| `POST /api/rooms` | Body `{ turnstileToken }` → `{ code }` (Turnstile + Rate-Limit `RL_CREATE`) |
+| `POST /api/rooms` | Body `{ turnstileToken, encrypted }` → `{ code }` (Turnstile + Rate-Limit `RL_CREATE`) |
 | `GET /api/rooms/:code` | Existiert der Raum? 200 / 404 |
 | `GET /api/rooms/:code/ws` | WebSocket für den Live-Sync |
-| `POST /api/rooms/:code/text` | `{ text }` → Eintrag (Links werden automatisch erkannt) |
+| `POST /api/rooms/:code/text` | `{ text }` (Links werden erkannt) bzw. `{ ciphertext }` in verschlüsselten Räumen |
 | `POST /api/rooms/:code/files` | Rohdaten als Body, Header `X-Filename` (URL-encoded) und `Content-Type` |
 | `GET /api/rooms/:code/files/:id` | Download (`Content-Disposition: attachment`) |
 | `DELETE /api/rooms/:code/items/:id` | Eintrag löschen |

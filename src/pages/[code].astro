@@ -15,7 +15,9 @@ const code = normalizeCode(raw);
 // Kleinbuchstaben o. Ä. auf die kanonische Schreibweise umleiten
 if (code && code !== raw) return Astro.redirect(`/${code}`, 301);
 
-const exists = code ? await env.ROOM.get(env.ROOM.idFromName(code)).exists() : false;
+const info = code ? await env.ROOM.get(env.ROOM.idFromName(code)).info() : null;
+const exists = info !== null;
+const encrypted = info?.encrypted ?? false;
 if (!exists) Astro.response.status = 404;
 Astro.response.headers.set('Cache-Control', 'no-store');
 ---
@@ -42,7 +44,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
             <span id="status-text">{t.room.connecting}</span>
           </span>
         </SiteHeader>
-        <main class="room" id="main" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
+        <main class="room" id="main" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang} data-encrypted={encrypted ? '1' : '0'}>
 
         <h1 class="sr-only">{t.room.heading(code!)}</h1>
 
@@ -58,12 +60,31 @@ Astro.response.headers.set('Cache-Control', 'no-store');
               {t.room.qr}
             </button>
           </div>
+          <p class:list={['enc-badge', { plain: !encrypted }]}>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              {encrypted ? <path d="M8 11V7a4 4 0 0 1 8 0v4" /> : <path d="M8 11V7a4 4 0 0 1 7.5-2" />}
+            </svg>
+            <span>{encrypted ? t.room.encryptedBadge : t.room.plainBadge}</span>
+          </p>
           <div class="qr-panel" id="qr-panel" hidden>
             <canvas id="qr" width="220" height="220" role="img" aria-label={t.room.qrLabel} />
             <p class="muted small mono" id="room-url" />
           </div>
         </section>
 
+        <section class="card locked" id="locked" hidden>
+          <h2>{t.room.lockedTitle}</h2>
+          <p class="muted">{t.room.lockedText}</p>
+          <form id="unlock" autocomplete="off">
+            <label for="unlock-link" class="sr-only">{t.room.unlockLabel}</label>
+            <input id="unlock-link" class="unlock-input mono" placeholder={t.room.unlockPlaceholder} required />
+            <button class="btn btn-primary btn-small" type="submit">{t.room.unlock}</button>
+          </form>
+          <p class="error small" id="unlock-error" role="alert" hidden>{t.room.unlockInvalid}</p>
+        </section>
+
+        <div id="room-content">
         <section class="card composer">
           <label for="text" class="sr-only">
             {t.room.textLabel}
@@ -92,6 +113,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
         <p class="empty muted" id="empty">
           {t.room.empty}
         </p>
+        </div>
         <p class="muted small expiry" id="expiry" />
 
         <div class="dropzone" id="dropzone" hidden>
@@ -170,6 +192,48 @@ Astro.response.headers.set('Cache-Control', 'no-store');
   }
   .small {
     font-size: 13px;
+  }
+  /* Gleiches Abstandsraster wie .room, auch innerhalb der Hülle */
+  #room-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .enc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .enc-badge.plain {
+    color: var(--muted);
+  }
+  .locked h2 {
+    margin: 0 0 6px;
+    font-size: 17px;
+  }
+  .locked p {
+    margin: 0 0 12px;
+  }
+  #unlock {
+    display: flex;
+    gap: 8px;
+  }
+  .unlock-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--field-border);
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 14px;
+  }
+  .locked .error {
+    color: var(--danger);
+    margin: 8px 0 0;
   }
   .composer textarea {
     width: 100%;
