@@ -1,0 +1,64 @@
+---
+import LegalPage from '../layouts/LegalPage.astro';
+import { LEGAL } from '../shared/legal';
+
+const { lang } = Astro.locals;
+const en = lang === 'en';
+
+// Bis die echten Angaben eingetragen sind, nur lokal sichtbar
+if (!LEGAL.ready && !import.meta.env.DEV) return new Response(null, { status: 404 });
+---
+
+<LegalPage title={en ? 'Legal notice' : 'Impressum'}>
+  <h1>{en ? 'Legal notice' : 'Impressum'}</h1>
+  <p class="lead">
+    {
+      en
+        ? 'Provider information under German law (§ 5 DDG). The legally binding version is in German.'
+        : 'Angaben gemäß § 5 DDG'
+    }
+  </p>
+
+  <h2>{en ? 'Provider' : 'Anbieter'}</h2>
+  <address>
+    {LEGAL.name}<br />
+    {LEGAL.street}<br />
+    {LEGAL.city}<br />
+    {LEGAL.country}
+  </address>
+
+  <h2>{en ? 'Contact' : 'Kontakt'}</h2>
+  <p>
+    {en ? 'Email' : 'E-Mail'}: <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>
+  </p>
+
+  <h2>{en ? 'Responsible for content' : 'Verantwortlich für den Inhalt'}</h2>
+  <p>{LEGAL.name}, {en ? 'address as above.' : 'Anschrift wie oben.'}</p>
+
+  <h2>{en ? 'Reporting illegal content' : 'Rechtswidrige Inhalte melden'}</h2>
+  <p>
+    {
+      en
+        ? 'tee stores content that users upload into rooms for up to 24 hours. If you come across illegal content, please send the room code and a short description to the email address above. This address is also the point of contact under Art. 11 and 12 of the Digital Services Act (DSA), in German or English.'
+        : 'tee speichert Inhalte, die Nutzer in Räume hochladen, für höchstens 24 Stunden. Wenn dir rechtswidrige Inhalte auffallen, schick bitte den Raum-Code und eine kurze Beschreibung an die oben genannte E-Mail-Adresse. Sie ist auch die Kontaktstelle nach Art. 11 und 12 des Digital Services Act (DSA), auf Deutsch oder Englisch.'
+    }
+  </p>
+
+  <h2>{en ? 'Dispute resolution' : 'Streitbeilegung'}</h2>
+  <p>
+    {
+      en
+        ? 'I am neither willing nor obliged to take part in dispute resolution proceedings before a consumer arbitration board.'
+        : 'Ich bin nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.'
+    }
+  </p>
+
+  <h2>{en ? 'Liability' : 'Haftung'}</h2>
+  <p>
+    {
+      en
+        ? 'tee is a free, open-source service provided without any guarantee of availability. Users are responsible for the content they share. The operators of linked websites are responsible for their content.'
+        : 'tee ist ein kostenloser, quelloffener Dienst ohne Gewähr für Verfügbarkeit. Für geteilte Inhalte sind die Nutzer selbst verantwortlich. Für die Inhalte verlinkter Seiten sind deren Betreiber verantwortlich.'
+    }
+  </p>
+</LegalPage>

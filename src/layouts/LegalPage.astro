@@ -1,0 +1,58 @@
+---
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<Base title={`${title} · tee`}>
+  <SiteHeader />
+  <main class="legal" id="main">
+    <slot />
+  </main>
+  <SiteFooter />
+</Base>
+
+<style>
+  .legal {
+    max-width: 720px;
+    padding-top: 24px;
+    line-height: 1.65;
+  }
+  .legal :global(h1) {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 6vw, 40px);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .legal :global(h2) {
+    margin: 36px 0 8px;
+    font-size: 19px;
+  }
+  .legal :global(h3) {
+    margin: 22px 0 6px;
+    font-size: 16px;
+  }
+  .legal :global(p),
+  .legal :global(ul),
+  .legal :global(address) {
+    margin: 0 0 12px;
+    max-width: 68ch;
+  }
+  .legal :global(address) {
+    font-style: normal;
+  }
+  .legal :global(ul) {
+    padding-left: 20px;
+  }
+  .legal :global(li) {
+    margin-bottom: 6px;
+  }
+  .legal :global(.lead) {
+    color: var(--muted);
+  }
+</style>

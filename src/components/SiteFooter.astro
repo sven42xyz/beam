@@ -1,14 +1,25 @@
 ---
 import LangSwitch from './LangSwitch.astro';
 import { useTranslations } from '../i18n';
+import { LEGAL } from '../shared/legal';
 import { REPO_URL, SUPPORT_URL } from '../shared/site';
 
-const t = useTranslations(Astro.locals.lang);
+const { lang } = Astro.locals;
+const t = useTranslations(lang);
+const showLegal = LEGAL.ready || import.meta.env.DEV;
 ---
 
 <footer class="site-footer">
   <span>{t.home.footer}</span>
   <div class="footer-right">
+    {
+      showLegal && (
+        <>
+          <a href="/impressum">{lang === 'en' ? 'Legal notice' : 'Impressum'}</a>
+          <a href="/datenschutz">{lang === 'en' ? 'Privacy' : 'Datenschutz'}</a>
+        </>
+      )
+    }
     <a href={REPO_URL} target="_blank" rel="noopener noreferrer">{t.nav.github}</a>
     {
       SUPPORT_URL && (
@@ -37,8 +48,9 @@ const t = useTranslations(Astro.locals.lang);
   }
   .footer-right {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
+    gap: 8px 16px;
   }
   .site-footer a {
     color: var(--muted);
