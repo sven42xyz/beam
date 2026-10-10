@@ -22,24 +22,25 @@ Astro.response.headers.set('Cache-Control', 'no-store');
 <Base title={exists ? `Beam · ${code}` : `Beam · ${t.room.titleNotFound}`}>
   {
     !exists ? (
-      <main>
+      <>
         <SiteHeader />
-        <div class="notfound">
+        <main class="notfound">
           <h1>{t.room.notFound}</h1>
           <p class="muted">{t.room.notFoundText}</p>
           <a class="btn btn-primary" href="/">
             {t.room.toHome}
           </a>
-        </div>
-      </main>
+        </main>
+      </>
     ) : (
-      <main class="room" id="room" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
+      <>
         <SiteHeader compact>
           <span class="status" id="status" data-state="connecting">
             <span class="dot" />
             <span id="status-text">{t.room.connecting}</span>
           </span>
         </SiteHeader>
+        <main class="room" id="room" data-code={code} data-max-file={MAX_FILE_BYTES} data-max-items={MAX_ITEMS} data-lang={lang}>
 
         <section class="card share">
           <div class="share-main">
@@ -91,7 +92,8 @@ Astro.response.headers.set('Cache-Control', 'no-store');
         <div class="dropzone" id="dropzone" hidden>
           <div>{t.room.dropzone}</div>
         </div>
-      </main>
+        </main>
+      </>
     )
   }
 </Base>

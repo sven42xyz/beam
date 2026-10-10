@@ -25,12 +25,16 @@ const t = useTranslations(Astro.locals.lang);
 </header>
 
 <style>
+  /* Feste Seitenbreite, unabhängig von der Inhaltsbreite der jeweiligen Seite */
   .site-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 18px 0;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 18px 16px;
   }
   .brand {
     display: inline-flex;
