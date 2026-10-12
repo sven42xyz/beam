@@ -10,7 +10,7 @@ The name comes from the Unix command `tee`: one input, many outputs. Whatever on
 2. On the second device, scan the QR code, open the link, or type the code on the start page.
 3. Text, links and files (file picker, drag & drop or paste from the clipboard) appear instantly on every connected device.
 
-Rooms are deleted automatically **24 h after the last activity**, including all files.
+Rooms are deleted automatically **24 h after the last activity** (at the latest 7 days after creation), including all files.
 
 ## Architecture
 
@@ -27,9 +27,13 @@ Browser ──HTTP──▶ Worker (src/worker.ts)
 - **One Durable Object per room** (`src/server/room.ts`), SQLite-backed:
   - Tables `meta` (code, encrypted, created_at, last_activity) and `items` (text/link/file, file metadata, status `pending` / `ready`).
   - WebSockets via the **Hibernation API** (`ctx.acceptWebSocket`). `ping`/`pong` is handled by `setWebSocketAutoResponse`, so the DO does not have to wake up for it.
-  - **Alarm**: every activity pushes it to now + 24 h. When it fires, it deletes all R2 objects under `rooms/<CODE>/` and then the entire DO storage.
+  - **Alarm**: every activity pushes it to now + 24 h, capped at 7 days after creation. When it fires, it deletes all R2 objects under `rooms/<CODE>/` and then the entire DO storage.
 - **Uploads** stream through the Worker into R2: the DO first reserves an item (checking the 50-item limit), the body is written to R2 through a `FixedLengthStream`, then the DO commits the item and broadcasts it to every device.
 - **Rate limiting** via the Workers rate limiting binding, keyed by IP (`cf-connecting-ip`).
+- **Cost ceiling** via a single `Quota` Durable Object (`src/server/quota.ts`, `idFromName('global')`):
+  - Total file storage in R2 is capped (50 GB). Rooms report uploads and deletions; an alarm recounts the real total from R2 every 6 hours, so the counter cannot drift.
+  - Upload volume (files + texts) per IP and UTC day is capped (2 GB). IPv6 addresses are grouped by /64. Deleting does not refund the daily volume. Only a SHA-256 hash of day + IP bucket is stored, rows are dropped after two days.
+  - Rooms reserve quota before accepting an upload and release it when files are deleted, uploads fail or rooms expire.
 - **Turnstile** protects room creation. The Worker verifies the token via `siteverify`. Without configured keys, Turnstile is disabled.
 - **Languages: German and English.** The middleware (`src/middleware.ts`) picks the language from the `lang` cookie, then `Accept-Language`, then falls back to English. `?lang=de` / `?lang=en` sets the cookie and redirects to the URL without the parameter. Room URLs stay language-neutral (`/<CODE>`). All UI strings live in `src/i18n/index.ts`.
 
@@ -71,7 +75,9 @@ Error responses are `{ error, message }`. The client translates the `error` code
 | Max. text length | 100 KB |
 | Room creation | 10 / minute / IP |
 | Uploads, text, deletes | 30 / minute / IP |
-| Lifetime | 24 h after the last activity |
+| Upload volume | 2 GB / day / IP (IPv6: per /64) |
+| Total file storage | 50 GB (uploads are rejected beyond that) |
+| Lifetime | 24 h after the last activity, at most 7 days |
 
 > The rate limiting binding counts per Cloudflare location and is not exact. That is good enough for abuse protection here.
 > Cloudflare limits the request body size by plan (Free/Pro: 100 MB). Higher limits would need multipart uploads.
@@ -84,7 +90,8 @@ src/
 ├─ middleware.ts          Language detection (cookie / Accept-Language / ?lang=)
 ├─ server/
 │  ├─ api.ts              API routes, validation, rate limiting, Turnstile, R2 streaming
-│  └─ room.ts             Durable Object (SQLite, WebSockets, alarm)
+│  ├─ room.ts             Durable Object per room (SQLite, WebSockets, alarm)
+│  └─ quota.ts            Durable Object enforcing storage and upload limits
 ├─ shared/                Code shared by client and server
 │  ├─ codes.ts            Room code generation / validation
 │  ├─ limits.ts           Limits & TTL
@@ -213,7 +220,7 @@ npx wrangler tail
 
 ### Configuration
 
-- **Limits / TTL**: `src/shared/limits.ts`
+- **Limits / TTL / quotas**: `src/shared/limits.ts`
 - **Rate limits**: `ratelimits` in `wrangler.jsonc` (`period` must be 10 or 60 seconds)
 - **Bucket name**: `r2_buckets` in `wrangler.jsonc`
 - **Legal details**: `src/shared/legal.ts`

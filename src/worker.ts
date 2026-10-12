@@ -1,6 +1,7 @@
 import { handle } from '@astrojs/cloudflare/handler';
 import { handleApi } from './server/api';
 
+export { Quota } from './server/quota';
 export { Room } from './server/room';
 
 export default {

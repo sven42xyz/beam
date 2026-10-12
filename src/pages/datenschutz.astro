@@ -36,7 +36,7 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
 
         <h3>Content you share</h3>
         <p>
-          Text, links and files you send into a room are stored so that the other devices in the room can retrieve them. 24 hours after the last activity in a room, the room and all of its files are deleted automatically. You can delete individual items earlier yourself. A room holds at most {MAX_ITEMS} items.
+          Text, links and files you send into a room are stored so that the other devices in the room can retrieve them. 24 hours after the last activity in a room, and in any case 7 days after it was created, the room and all of its files are deleted automatically. You can delete individual items earlier yourself. A room holds at most {MAX_ITEMS} items.
         </p>
         <p>
           <strong>Encrypted rooms (default):</strong> Text, links, files, file names and file types are encrypted in your browser (AES-256-GCM) before they are sent. The key is part of the room link after the “#” and is never transmitted to the server. I therefore cannot read the content. What remains visible to the server is the number of items, their size and the time they were created.
@@ -48,7 +48,7 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
 
         <h3>IP address and server logs</h3>
         <p>
-          Every request transmits your IP address. tee uses it to limit the number of requests per minute (rate limiting) and so protect the service against abuse. The counters only live for about a minute. In addition, the hosting provider records technical logs (IP address, time, requested address, browser information) for operation and troubleshooting. They are deleted automatically after a few days, at most 7.
+          Every request transmits your IP address. tee uses it to limit the number of requests per minute (rate limiting) and so protect the service against abuse. The counters only live for about a minute. To cap the daily upload volume, tee also stores, per day, how much was uploaded from your network. It does not store your IP address for this, only a cryptographic hash of the date and your shortened address (IPv6: the first 64 bits). These entries are deleted after two days. In addition, the hosting provider records technical logs (IP address, time, requested address, browser information) for operation and troubleshooting. They are deleted automatically after a few days, at most 7.
         </p>
         <p>Legal basis: Art. 6 (1) (f) GDPR. The legitimate interest is a secure, stable service.</p>
 
@@ -110,7 +110,7 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
 
         <h3>Geteilte Inhalte</h3>
         <p>
-          Texte, Links und Dateien, die du in einen Raum schickst, werden gespeichert, damit die anderen Geräte im Raum sie abrufen können. 24 Stunden nach der letzten Aktivität im Raum werden der Raum und alle Dateien automatisch gelöscht. Einzelne Einträge kannst du vorher selbst löschen. Ein Raum fasst höchstens {MAX_ITEMS} Einträge.
+          Texte, Links und Dateien, die du in einen Raum schickst, werden gespeichert, damit die anderen Geräte im Raum sie abrufen können. 24 Stunden nach der letzten Aktivität im Raum, spätestens aber 7 Tage nach dem Erstellen, werden der Raum und alle Dateien automatisch gelöscht. Einzelne Einträge kannst du vorher selbst löschen. Ein Raum fasst höchstens {MAX_ITEMS} Einträge.
         </p>
         <p>
           <strong>Verschlüsselte Räume (Standard):</strong> Texte, Links, Dateien, Dateinamen und Dateitypen werden in deinem Browser verschlüsselt (AES-256-GCM), bevor sie gesendet werden. Der Schlüssel steckt im Raum-Link hinter dem „#“ und wird nie an den Server übertragen. Ich kann die Inhalte deshalb nicht lesen. Für den Server sichtbar bleiben nur Anzahl, Größe und Zeitpunkt der Einträge.
@@ -122,7 +122,7 @@ const updated = new Date(LEGAL.updated).toLocaleDateString(lang, { day: 'numeric
 
         <h3>IP-Adresse und Server-Protokolle</h3>
         <p>
-          Bei jedem Aufruf wird deine IP-Adresse übertragen. tee nutzt sie, um die Zahl der Anfragen pro Minute zu begrenzen (Rate Limiting) und den Dienst so vor Missbrauch zu schützen. Die Zähler bestehen nur etwa eine Minute. Außerdem zeichnet der Hosting-Anbieter technische Protokolle auf (IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browser-Angaben), um den Betrieb zu sichern und Fehler zu finden. Sie werden nach wenigen Tagen, spätestens nach 7 Tagen, automatisch gelöscht.
+          Bei jedem Aufruf wird deine IP-Adresse übertragen. tee nutzt sie, um die Zahl der Anfragen pro Minute zu begrenzen (Rate Limiting) und den Dienst so vor Missbrauch zu schützen. Die Zähler bestehen nur etwa eine Minute. Um das tägliche Upload-Volumen zu begrenzen, speichert tee außerdem pro Tag, wie viel aus deinem Netz hochgeladen wurde. Dafür wird nicht deine IP-Adresse gespeichert, sondern nur ein kryptografischer Hash aus Datum und gekürzter Adresse (IPv6: die ersten 64 Bit). Diese Einträge werden nach zwei Tagen gelöscht. Außerdem zeichnet der Hosting-Anbieter technische Protokolle auf (IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browser-Angaben), um den Betrieb zu sichern und Fehler zu finden. Sie werden nach wenigen Tagen, spätestens nach 7 Tagen, automatisch gelöscht.
         </p>
         <p>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Das berechtigte Interesse ist ein sicherer, stabiler Betrieb.</p>
 

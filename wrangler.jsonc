@@ -10,11 +10,17 @@
   // Static assets (filled by the Astro build)
   "assets": { "binding": "ASSETS" },
 
-  // One Durable Object per room
+  // One Durable Object per room, plus a single Quota object that enforces the storage limits
   "durable_objects": {
-    "bindings": [{ "name": "ROOM", "class_name": "Room" }]
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" },
+      { "name": "QUOTA", "class_name": "Quota" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["Quota"] }
+  ],
 
   // Files. EU jurisdiction: data stays in the EU
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files", "jurisdiction": "eu" }],
@@ -50,7 +56,10 @@
   "previews": {
     "vars": { "TURNSTILE_SITE_KEY": "0x4AAAAAAFTFRdi6GsGoj81e" },
     "durable_objects": {
-      "bindings": [{ "name": "ROOM", "class_name": "Room" }]
+      "bindings": [
+        { "name": "ROOM", "class_name": "Room" },
+        { "name": "QUOTA", "class_name": "Quota" }
+      ]
     },
     "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files-preview", "jurisdiction": "eu" }],
     "ratelimits": [

@@ -13,6 +13,10 @@ function roomError(e: RoomError): Response {
       return error(409, 'room_full', 'Room is full (max. 50 items).');
     case 'wrong_mode':
       return error(409, 'wrong_mode', 'Encryption mode does not match this room.');
+    case 'storage_full':
+      return error(507, 'storage_full', 'tee is out of storage right now. Please try again later.');
+    case 'quota_exceeded':
+      return error(429, 'quota_exceeded', 'Daily upload volume for this network reached.');
     default:
       return error(404, 'not_found', 'Room not found or expired.');
   }
@@ -127,7 +131,7 @@ async function postText(request: Request, env: Env, code: string) {
     const ciphertext = body.ciphertext;
     if (!ciphertext || !BASE64URL.test(ciphertext)) return error(400, 'bad_request', 'Invalid ciphertext.');
     if (ciphertext.length > MAX_CIPHERTEXT_CHARS) return error(413, 'too_large', 'Text is too long (max. 100 KB).');
-    const result = await roomStub(env, code).addText({ ciphertext });
+    const result = await roomStub(env, code).addText({ ciphertext }, clientIp(request));
     return result.ok ? json(result.value, 201) : roomError(result.error);
   }
 
@@ -137,7 +141,7 @@ async function postText(request: Request, env: Env, code: string) {
     return error(413, 'too_large', 'Text is too long (max. 100 KB).');
   }
 
-  const result = await roomStub(env, code).addText({ text, kind: isLink(text) ? 'link' : 'text' });
+  const result = await roomStub(env, code).addText({ text, kind: isLink(text) ? 'link' : 'text' }, clientIp(request));
   return result.ok ? json(result.value, 201) : roomError(result.error);
 }
 
@@ -165,7 +169,7 @@ async function uploadFile(request: Request, env: Env, code: string) {
   }
 
   const stub = roomStub(env, code);
-  const reserved = await stub.reserveFile(name, size, mime, encrypted);
+  const reserved = await stub.reserveFile(name, size, mime, encrypted, clientIp(request));
   if (!reserved.ok) return roomError(reserved.error);
   const { id, r2Key } = reserved.value;
 

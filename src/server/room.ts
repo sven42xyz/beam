@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
-import { MAX_ITEMS, PENDING_TIMEOUT_MS, ROOM_TTL_MS } from '../shared/limits';
+import { MAX_ITEMS, PENDING_TIMEOUT_MS, ROOM_MAX_LIFETIME_MS, ROOM_TTL_MS } from '../shared/limits';
+import type { QuotaError } from './quota';
 import type { Item, ItemKind, ServerMessage } from '../shared/types';
 
 type ItemRow = {
@@ -15,7 +16,7 @@ type ItemRow = {
 };
 
 /** wrong_mode: plaintext sent to an encrypted room (or the other way round) */
-export type RoomError = 'not_found' | 'room_full' | 'wrong_mode';
+export type RoomError = 'not_found' | 'room_full' | 'wrong_mode' | QuotaError;
 export type Result<T> = { ok: true; value: T } | { ok: false; error: RoomError };
 
 function toItem(row: ItemRow, enc: boolean): Item {
@@ -92,13 +93,23 @@ export class Room extends DurableObject<Env> {
     return toItem(row, this.encrypted);
   }
 
-  /** Activity: push the expiry to now + 24 h. */
+  /** When the room will be deleted: 24 h after the last activity, at most 7 days after creation. */
+  private expiry(lastActivity: number): number {
+    const createdAt = Number(this.getMeta('created_at') ?? lastActivity);
+    return Math.min(lastActivity + ROOM_TTL_MS, createdAt + ROOM_MAX_LIFETIME_MS);
+  }
+
+  /** Activity: push the expiry out (within the maximum lifetime). */
   private async touch(): Promise<number> {
     const now = Date.now();
-    const expiresAt = now + ROOM_TTL_MS;
     this.setMeta('last_activity', String(now));
+    const expiresAt = this.expiry(now);
     await this.ctx.storage.setAlarm(expiresAt);
     return expiresAt;
+  }
+
+  private get quota() {
+    return this.env.QUOTA.get(this.env.QUOTA.idFromName('global'));
   }
 
   // ---------- RPC ----------
@@ -127,12 +138,21 @@ export class Room extends DurableObject<Env> {
    * Plaintext rooms receive `{ text, kind }`, encrypted rooms `{ ciphertext }`.
    * Whether an encrypted item is text or a link is part of the ciphertext.
    */
-  async addText(payload: { text: string; kind: 'text' | 'link' } | { ciphertext: string }): Promise<Result<Item>> {
+  async addText(
+    payload: { text: string; kind: 'text' | 'link' } | { ciphertext: string },
+    ip: string,
+  ): Promise<Result<Item>> {
     if (!this.code) return { ok: false, error: 'not_found' };
     const isCipher = 'ciphertext' in payload;
     if (isCipher !== this.encrypted) return { ok: false, error: 'wrong_mode' };
     const content = isCipher ? payload.ciphertext : payload.text;
     const kind = isCipher ? 'text' : payload.kind;
+    if (this.countItems() >= MAX_ITEMS) return { ok: false, error: 'room_full' };
+
+    const quota = await this.quota.reserve(ip, new TextEncoder().encode(content).length, 'text');
+    if (!quota.ok) return quota;
+    // Other requests may have been handled while waiting for the quota: check again
+    if (!this.code) return { ok: false, error: 'not_found' };
     if (this.countItems() >= MAX_ITEMS) return { ok: false, error: 'room_full' };
 
     const row: ItemRow = {
@@ -159,6 +179,7 @@ export class Room extends DurableObject<Env> {
     size: number,
     mime: string,
     encrypted: boolean,
+    ip: string,
   ): Promise<Result<{ id: string; r2Key: string }>> {
     const code = this.code;
     if (!code) return { ok: false, error: 'not_found' };
@@ -179,6 +200,12 @@ export class Room extends DurableObject<Env> {
       status: 'pending',
       created_at: Date.now(),
     });
+    // The pending row already counts towards the item limit, so parallel uploads cannot overshoot it
+    const quota = await this.quota.reserve(ip, size, 'file');
+    if (!quota.ok) {
+      this.sql.exec('DELETE FROM items WHERE id = ?', id);
+      return quota;
+    }
     await this.touch();
     return { ok: true, value: { id, r2Key } };
   }
@@ -198,6 +225,7 @@ export class Room extends DurableObject<Env> {
     if (!row || row.status !== 'pending') return;
     this.sql.exec('DELETE FROM items WHERE id = ?', id);
     if (row.r2_key) await this.env.FILES.delete(row.r2_key);
+    await this.quota.releaseFile(row.file_size ?? 0);
   }
 
   getFile(id: string): { r2Key: string; name: string; size: number; mime: string; encrypted: boolean } | null {
@@ -216,7 +244,10 @@ export class Room extends DurableObject<Env> {
     const row = this.getRow(id);
     if (!row || row.status !== 'ready') return false;
     this.sql.exec('DELETE FROM items WHERE id = ?', id);
-    if (row.r2_key) await this.env.FILES.delete(row.r2_key);
+    if (row.r2_key) {
+      await this.env.FILES.delete(row.r2_key);
+      await this.quota.releaseFile(row.file_size ?? 0);
+    }
     this.broadcast({ type: 'delete', id, expiresAt: await this.touch() });
     return true;
   }
@@ -261,14 +292,20 @@ export class Room extends DurableObject<Env> {
 
   async alarm() {
     const lastActivity = Number(this.getMeta('last_activity') ?? 0);
-    if (lastActivity && Date.now() < lastActivity + ROOM_TTL_MS) {
+    if (lastActivity && Date.now() < this.expiry(lastActivity)) {
       // Activity in the meantime: reschedule
-      await this.ctx.storage.setAlarm(lastActivity + ROOM_TTL_MS);
+      await this.ctx.storage.setAlarm(this.expiry(lastActivity));
       return;
     }
 
     const code = this.code;
-    if (code) await this.deleteR2Prefix(`rooms/${code}/`);
+    if (code) {
+      const stored = this.sql
+        .exec<{ bytes: number | null }>(`SELECT SUM(file_size) AS bytes FROM items WHERE kind = 'file'`)
+        .one().bytes;
+      await this.deleteR2Prefix(`rooms/${code}/`);
+      if (stored) await this.quota.releaseFile(stored);
+    }
 
     for (const ws of this.ctx.getWebSockets()) {
       try {
@@ -320,8 +357,8 @@ export class Room extends DurableObject<Env> {
   private async cleanupStalePending() {
     const cutoff = Date.now() - PENDING_TIMEOUT_MS;
     const stale = this.sql
-      .exec<{ id: string; r2_key: string | null }>(
-        `SELECT id, r2_key FROM items WHERE status = 'pending' AND created_at < ?`,
+      .exec<{ id: string; r2_key: string | null; file_size: number | null }>(
+        `SELECT id, r2_key, file_size FROM items WHERE status = 'pending' AND created_at < ?`,
         cutoff,
       )
       .toArray();
@@ -329,6 +366,7 @@ export class Room extends DurableObject<Env> {
     this.sql.exec(`DELETE FROM items WHERE status = 'pending' AND created_at < ?`, cutoff);
     const keys = stale.map((s) => s.r2_key).filter((k): k is string => !!k);
     if (keys.length) await this.env.FILES.delete(keys);
+    await this.quota.releaseFile(stale.reduce((sum, s) => sum + (s.file_size ?? 0), 0));
   }
 
   private async deleteR2Prefix(prefix: string) {

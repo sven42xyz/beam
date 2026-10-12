@@ -1,4 +1,4 @@
-import { MAX_FILE_BYTES, MAX_ITEMS } from '../shared/limits';
+import { IP_DAILY_UPLOAD_BYTES, MAX_FILE_BYTES, MAX_ITEMS } from '../shared/limits';
 
 export const LANGS = ['de', 'en'] as const;
 export type Lang = (typeof LANGS)[number];
@@ -25,6 +25,7 @@ export function pickLang(cookie: string | undefined, acceptLanguage: string | nu
 }
 
 const maxMb = MAX_FILE_BYTES / 1024 / 1024;
+const dailyGb = IP_DAILY_UPLOAD_BYTES / 1000 ** 3;
 
 const de = {
   meta: {
@@ -50,7 +51,7 @@ const de = {
     orEnterCode: 'oder Code eingeben',
     codeLabel: 'Raum-Code',
     join: 'Beitreten',
-    note: 'Räume löschen sich 24 h nach der letzten Aktivität.',
+    note: 'Räume löschen sich 24 h nach der letzten Aktivität, spätestens nach 7 Tagen.',
     howTitle: "So funktioniert's",
     steps: [
       { title: 'Raum erstellen', text: 'Ein Klick und du hast einen kurzen Code und einen QR-Code.' },
@@ -65,7 +66,7 @@ const de = {
       live: { title: 'Live-Sync', text: 'Neue Einträge erscheinen ohne Neuladen auf allen Geräten im Raum.' },
       file: { title: `Dateien bis ${maxMb} MB`, text: 'Per Auswahl, Drag & Drop oder direkt aus der Zwischenablage.' },
       key: { title: 'Kein Login', text: 'Keine Accounts, keine Installation. Der Code ist dein Zugang.' },
-      clock: { title: 'Löscht sich selbst', text: '24 Stunden nach der letzten Aktivität ist alles weg, auch die Dateien.' },
+      clock: { title: 'Löscht sich selbst', text: '24 Stunden nach der letzten Aktivität ist alles weg, auch die Dateien. Spätestens nach 7 Tagen.' },
       lock: { title: 'Ende-zu-Ende verschlüsselt', text: 'Inhalte werden auf deinem Gerät verschlüsselt. Der Server sieht nur Datensalat.' },
       code: { title: 'Open Source', text: 'Der komplette Code liegt auf GitHub.' },
     },
@@ -77,11 +78,11 @@ const de = {
       },
       {
         q: 'Wie lange bleiben die Daten gespeichert?',
-        a: '24 Stunden nach der letzten Aktivität im Raum werden der Raum und alle Dateien automatisch gelöscht. Einzelne Einträge kannst du jederzeit selbst löschen.',
+        a: '24 Stunden nach der letzten Aktivität im Raum werden der Raum und alle Dateien automatisch gelöscht, unabhängig davon spätestens 7 Tage nach dem Erstellen. Einzelne Einträge kannst du jederzeit selbst löschen.',
       },
       {
         q: 'Gibt es Limits?',
-        a: `Pro Datei maximal ${maxMb} MB und pro Raum maximal ${MAX_ITEMS} Einträge. Damit niemand den Dienst überlastet, ist auch die Anzahl der Anfragen pro Minute begrenzt.`,
+        a: `Pro Datei maximal ${maxMb} MB und pro Raum maximal ${MAX_ITEMS} Einträge. Damit niemand den Dienst überlastet, sind außerdem die Anfragen pro Minute und das Upload-Volumen pro Tag begrenzt (${dailyGb} GB pro Netz).`,
       },
       { q: 'Brauche ich eine App?', a: 'Nein. tee läuft in jedem aktuellen Browser, auf dem Handy genauso wie am Laptop.' },
       { q: 'Was kostet das?', a: 'Nichts. tee ist ein kleines Open-Source-Projekt ohne Werbung und ohne Tracking.' },
@@ -147,6 +148,8 @@ const de = {
     not_found: 'Raum nicht gefunden oder abgelaufen.',
     room_full: `Der Raum ist voll (max. ${MAX_ITEMS} Einträge).`,
     wrong_mode: 'Der Raum wurde inzwischen anders verschlüsselt. Bitte neu laden.',
+    storage_full: 'tee ist gerade voll. Bitte versuch es später noch einmal.',
+    quota_exceeded: 'Tageslimit für Uploads aus deinem Netz erreicht (2 GB). Morgen geht es weiter.',
     too_large: 'Zu groß.',
     rate_limited: 'Zu viele Anfragen. Bitte kurz warten.',
     empty: 'Text ist leer.',
@@ -186,7 +189,7 @@ const en: Dict = {
     orEnterCode: 'or enter a code',
     codeLabel: 'Room code',
     join: 'Join',
-    note: 'Rooms delete themselves 24 h after the last activity.',
+    note: 'Rooms delete themselves 24 h after the last activity, after 7 days at the latest.',
     howTitle: 'How it works',
     steps: [
       { title: 'Create a room', text: 'One click gets you a short code and a QR code.' },
@@ -198,7 +201,7 @@ const en: Dict = {
       live: { title: 'Live sync', text: 'New items appear on every device in the room without reloading.' },
       file: { title: `Files up to ${maxMb} MB`, text: 'Pick them, drag & drop them or paste them from the clipboard.' },
       key: { title: 'No login', text: 'No accounts, nothing to install. The code is your key.' },
-      clock: { title: 'Self-destructing', text: '24 hours after the last activity everything is gone, files included.' },
+      clock: { title: 'Self-destructing', text: '24 hours after the last activity everything is gone, files included. After 7 days at the latest.' },
       lock: { title: 'End-to-end encrypted', text: 'Content is encrypted on your device. The server only sees gibberish.' },
       code: { title: 'Open source', text: 'All of the code is on GitHub.' },
     },
@@ -210,11 +213,11 @@ const en: Dict = {
       },
       {
         q: 'How long is data kept?',
-        a: '24 hours after the last activity in a room, the room and all its files are deleted automatically. You can delete individual items yourself at any time.',
+        a: '24 hours after the last activity in a room, the room and all its files are deleted automatically, and in any case 7 days after it was created. You can delete individual items yourself at any time.',
       },
       {
         q: 'Are there limits?',
-        a: `Up to ${maxMb} MB per file and ${MAX_ITEMS} items per room. The number of requests per minute is limited too, so nobody can overload the service.`,
+        a: `Up to ${maxMb} MB per file and ${MAX_ITEMS} items per room. To keep anyone from overloading the service, requests per minute and the daily upload volume are limited too (${dailyGb} GB per network).`,
       },
       { q: 'Do I need an app?', a: 'No. tee runs in any modern browser, on your phone just like on your laptop.' },
       { q: 'What does it cost?', a: 'Nothing. tee is a small open-source project without ads or tracking.' },
@@ -279,6 +282,8 @@ const en: Dict = {
     not_found: 'Room not found or expired.',
     room_full: `This room is full (max. ${MAX_ITEMS} items).`,
     wrong_mode: 'This room uses a different encryption mode. Please reload.',
+    storage_full: 'tee is out of storage right now. Please try again later.',
+    quota_exceeded: 'Daily upload limit for your network reached (2 GB). Try again tomorrow.',
     too_large: 'Too large.',
     rate_limited: 'Too many requests. Please wait a moment.',
     empty: 'Text is empty.',
