@@ -5,3 +5,4 @@ dist/
 .dev.vars*
 worker-configuration.d.ts
 !.dev.vars.example
+main-prompt.md
