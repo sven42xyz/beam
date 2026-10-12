@@ -265,7 +265,17 @@ export class Room extends DurableObject<Env> {
 
     const expiresAt = await this.touch();
     const devices = this.ctx.getWebSockets().length;
-    server.send(JSON.stringify({ type: 'init', items: this.listItems(), devices, expiresAt, encrypted: this.encrypted } satisfies ServerMessage));
+    const maxExpiresAt = Number(this.getMeta('created_at')) + ROOM_MAX_LIFETIME_MS;
+    server.send(
+      JSON.stringify({
+        type: 'init',
+        items: this.listItems(),
+        devices,
+        expiresAt,
+        maxExpiresAt,
+        encrypted: this.encrypted,
+      } satisfies ServerMessage),
+    );
     this.broadcast({ type: 'devices', count: devices }, server);
 
     return new Response(null, { status: 101, webSocket: client });

@@ -23,7 +23,8 @@ export interface Item {
 }
 
 export type ServerMessage =
-  | { type: 'init'; items: Item[]; devices: number; expiresAt: number; encrypted: boolean }
+  /** maxExpiresAt: creation + maximum lifetime; once expiresAt reaches it, activity no longer extends the room */
+  | { type: 'init'; items: Item[]; devices: number; expiresAt: number; maxExpiresAt: number; encrypted: boolean }
   | { type: 'item'; item: Item; expiresAt: number }
   | { type: 'delete'; id: string; expiresAt: number }
   | { type: 'devices'; count: number };

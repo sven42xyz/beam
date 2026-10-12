@@ -266,9 +266,12 @@ export async function initRoom(root: HTMLElement) {
     countEl.textContent = `${items.size} / ${maxItems}`;
   }
 
+  // Creation + maximum lifetime, from the init message. Once the expiry reaches it, the 7-day cap applies.
+  let maxExpiresAt = Infinity;
+
   function setExpiry(expiresAt: number) {
     const date = new Date(expiresAt).toLocaleString(lang, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-    expiryEl.textContent = t.room.expiresAt(date);
+    expiryEl.textContent = expiresAt >= maxExpiresAt ? t.room.expiresAtFinal(date) : t.room.expiresAt(date);
   }
 
   async function downloadEncrypted(item: View, btn: HTMLButtonElement) {
@@ -356,6 +359,7 @@ export async function initRoom(root: HTMLElement) {
           itemsEl.replaceChildren();
           views.forEach((view) => addItem(view, false));
           updateMeta();
+          maxExpiresAt = msg.maxExpiresAt;
           setExpiry(msg.expiresAt);
           setDevices(msg.devices);
           break;

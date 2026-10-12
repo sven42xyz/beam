@@ -141,7 +141,8 @@ const de = {
     reconnecting: 'Offline – verbinde neu…',
     expired: 'Raum abgelaufen',
     devices: (n: number) => (n === 1 ? '1 Gerät' : `${n} Geräte`),
-    expiresAt: (date: string) => `Raum wird gelöscht am ${date} (24 h nach letzter Aktivität).`,
+    expiresAt: (date: string) => `Raum wird gelöscht am ${date} (24 h nach der letzten Aktivität).`,
+    expiresAtFinal: (date: string) => `Raum wird gelöscht am ${date} (7 Tage nach dem Erstellen).`,
     fileTooLarge: (name: string, max: string) => `„${name}“ ist zu groß (max. ${max})`,
   },
   errors: {
@@ -276,6 +277,7 @@ const en: Dict = {
     expired: 'Room expired',
     devices: (n: number) => (n === 1 ? '1 device' : `${n} devices`),
     expiresAt: (date: string) => `Room will be deleted on ${date} (24 h after the last activity).`,
+    expiresAtFinal: (date: string) => `Room will be deleted on ${date} (7 days after it was created).`,
     fileTooLarge: (name: string, max: string) => `“${name}” is too large (max. ${max})`,
   },
   errors: {
