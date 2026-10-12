@@ -1,11 +1,11 @@
 :root {
   color-scheme: dark;
-  /* Nachtblau statt neutralem Schwarz, Periwinkle als Akzent, Bernstein als „Funke“ */
+  /* Night blue instead of neutral black, periwinkle as the accent, amber as the "spark" */
   --bg: #0f1220;
   --surface: #171b2e;
   --surface-2: #20253c;
   --border: #2a3050;
-  /* Rahmen von Eingabefeldern: mind. 3:1 gegen Hintergrund und Karte (WCAG 1.4.11) */
+  /* Input borders: at least 3:1 against background and card (WCAG 1.4.11) */
   --field-border: #626a96;
   --text: #e9ecf8;
   --muted: #8a91ad;
@@ -45,7 +45,7 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* hidden-Attribut soll immer gewinnen, auch gegen display: flex/grid in Komponenten */
+/* The hidden attribute must always win, even over display: flex/grid in components */
 [hidden] {
   display: none !important;
 }
@@ -138,7 +138,7 @@ textarea {
   outline-offset: 2px;
 }
 
-/* Eingabefelder */
+/* Input fields */
 input:not([type='file']),
 textarea {
   border-color: var(--field-border) !important;
@@ -148,7 +148,7 @@ textarea {
   opacity: 1;
 }
 
-/* Sprunglink: erst bei Tastaturfokus sichtbar */
+/* Skip link: only visible on keyboard focus */
 .skip-link {
   position: absolute;
   left: 16px;
@@ -165,7 +165,7 @@ textarea {
   top: 12px;
 }
 
-/* Bewegung reduzieren: Übergänge und Einblendungen abschalten */
+/* Reduced motion: turn off transitions and entrance animations */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

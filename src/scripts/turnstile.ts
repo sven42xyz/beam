@@ -1,4 +1,4 @@
-// Minimaler Wrapper um Cloudflare Turnstile (explizites Rendering).
+// Minimal wrapper around Cloudflare Turnstile (explicit rendering).
 // Docs: https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/
 
 interface TurnstileApi {
@@ -27,7 +27,7 @@ function failAll() {
   failed = [];
 }
 
-// Prüft auf die echte API: ein Element mit id="turnstile" würde sonst als window.turnstile durchgehen
+// Checks for the real API: an element with id="turnstile" would otherwise pass as window.turnstile
 function api(): TurnstileApi | undefined {
   return typeof window.turnstile?.render === 'function' ? window.turnstile : undefined;
 }
@@ -54,7 +54,7 @@ export async function initTurnstile(container: HTMLElement, siteKey: string, lan
   try {
     turnstile = await loadScript();
   } catch {
-    // z. B. von einem Adblocker blockiert
+    // e.g. blocked by an ad blocker
     broken = true;
     failAll();
     return;
@@ -63,7 +63,7 @@ export async function initTurnstile(container: HTMLElement, siteKey: string, lan
     sitekey: siteKey,
     language,
     action: 'create_room',
-    // Nur sichtbar, wenn wirklich eine Interaktion nötig ist
+    // Only visible when an interaction is actually needed
     appearance: 'interaction-only',
     callback: (t: string) => {
       token = t;
@@ -78,7 +78,7 @@ export async function initTurnstile(container: HTMLElement, siteKey: string, lan
   });
 }
 
-/** Wartet auf ein gültiges Token. Tokens sind einmalig, danach resetTurnstile() aufrufen. */
+/** Waits for a valid token. Tokens are single-use; call resetTurnstile() afterwards. */
 export function getTurnstileToken(): Promise<string> {
   if (broken) return Promise.reject(new Error('turnstile'));
   if (token) {

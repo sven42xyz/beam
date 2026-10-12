@@ -5,7 +5,7 @@ import { LEGAL } from '../shared/legal';
 const { lang } = Astro.locals;
 const en = lang === 'en';
 
-// Bis die echten Angaben eingetragen sind, nur lokal sichtbar
+// Only visible locally until the real details are filled in
 if (!LEGAL.ready && !import.meta.env.DEV) return new Response(null, { status: 404 });
 ---
 

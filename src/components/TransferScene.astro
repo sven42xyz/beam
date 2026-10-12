@@ -1,9 +1,9 @@
 ---
-// Dekorative Animation: Eine Datei fliegt als Funke vom Handy zum Laptop.
-// Ablauf (6 s, Schleife): Datei erscheint → wackelt → schrumpft zum Funken → fliegt im Bogen
-// mit Lichtspur → landet → Datei baut sich auf dem Laptop wieder auf → Häkchen.
-// Der Funke folgt der Kurve M90 70 Q310 -30 530 73: x ist darin linear, y quadratisch;
-// die Keyframes von .spark-fly sind Stützpunkte dieser Kurve.
+// Decorative animation: a file flies as a spark from a phone to a laptop.
+// Sequence (6 s, looping): file appears → wiggles → shrinks into a spark → flies in an arc
+// with a light trail → lands → the file reassembles on the laptop → check mark.
+// The spark follows the curve M90 70 Q310 -30 530 73: x is linear in it, y quadratic;
+// the keyframes of .spark-fly are sample points of that curve.
 ---
 
 <div class="transfer-scene" aria-hidden="true">
@@ -23,7 +23,7 @@
       </symbol>
     </defs>
 
-    <!-- Handy -->
+    <!-- Phone -->
     <g class="device">
       <rect x="62" y="24" width="56" height="102" rx="11"></rect>
       <path d="M82 31h16"></path>
@@ -36,15 +36,15 @@
     </g>
     <rect class="screen-flash" x="477" y="39" width="106" height="68" rx="6"></rect>
 
-    <!-- Lichtspur -->
+    <!-- Light trail -->
     <path class="trail" d="M90 70 Q310 -30 530 73" mask="url(#trail-reveal)"></path>
 
-    <!-- Datei auf dem Handy -->
+    <!-- File on the phone -->
     <g class="file-src">
       <use href="#file" x="76" y="53" width="28" height="34"></use>
     </g>
 
-    <!-- Funke -->
+    <!-- Spark -->
     <g class="spark-fly">
       <g class="spark">
         <circle cx="90" cy="70" r="16" fill="url(#spark-glow)"></circle>
@@ -52,7 +52,7 @@
       </g>
     </g>
 
-    <!-- Datei auf dem Laptop -->
+    <!-- File on the laptop -->
     <g class="file-dst">
       <use href="#file" x="516" y="56" width="28" height="34"></use>
       <g class="check">
@@ -187,7 +187,7 @@
     }
   }
 
-  /* Datei taucht auf, wackelt vorfreudig, wird gestaucht und schrumpft zum Funken */
+  /* The file pops up, wiggles eagerly, gets squashed and shrinks into a spark */
   @keyframes file-src {
     0% {
       opacity: 0;
@@ -223,7 +223,7 @@
     }
   }
 
-  /* Bogen von (90,70) nach (530,73): Stützpunkte der quadratischen Kurve */
+  /* Arc from (90,70) to (530,73): sample points of the quadratic curve */
   @keyframes spark-fly {
     0%,
     27% {
@@ -319,7 +319,7 @@
     }
   }
 
-  /* Datei baut sich auf dem Laptop wieder auf */
+  /* The file reassembles on the laptop */
   @keyframes file-dst {
     0%,
     59% {
@@ -364,7 +364,7 @@
     }
   }
 
-  /* Reduzierte Bewegung: ruhiges Standbild „Datei ist angekommen“ */
+  /* Reduced motion: calm still frame "file has arrived" */
   @media (prefers-reduced-motion: reduce) {
     .file-src {
       opacity: 0.35;

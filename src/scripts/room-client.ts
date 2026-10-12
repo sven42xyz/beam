@@ -5,13 +5,13 @@ import type { Item, ItemKind, ServerMessage } from '../shared/types';
 import { decryptJson, decryptStream, encryptedSize, encryptFile, encryptJson, importKey, keyFromHash } from './crypto';
 import { copyText, toast } from './ui';
 
-/** Ein Eintrag, wie das Gerät ihn anzeigt: in verschlüsselten Räumen bereits entschlüsselt. */
+/** An item as this device displays it: already decrypted in encrypted rooms. */
 interface View {
   id: string;
   kind: ItemKind;
   createdAt: number;
   enc: boolean;
-  /** Konnte nicht entschlüsselt werden (falscher Schlüssel o. Ä.) */
+  /** Could not be decrypted (wrong key or similar) */
   failed?: boolean;
   content?: string;
   name?: string;
@@ -19,12 +19,12 @@ interface View {
   mime?: string;
 }
 
-/** Verschlüsselter Text: Art und Inhalt */
+/** Encrypted text: kind and content */
 interface TextPayload {
   k: 'text' | 'link';
   c: string;
 }
-/** Verschlüsselte Datei-Metadaten: Name, Typ, Originalgröße */
+/** Encrypted file metadata: name, type, original size */
 interface FileMeta {
   n: string;
   m: string;
@@ -57,7 +57,7 @@ function h<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-// Node.appendChild statt Element.append: die Workers-Typen (HTMLRewriter) überlagern Element.append/prepend
+// Node.appendChild instead of Element.append: the Workers types (HTMLRewriter) shadow Element.append/prepend
 function add(parent: Node, ...children: (Node | string)[]) {
   for (const c of children) parent.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
 }
@@ -101,7 +101,7 @@ export async function initRoom(root: HTMLElement) {
   const maxItems = Number(root.dataset.maxItems);
   const api = `/api/rooms/${code}`;
 
-  // ---------- Schlüssel (nur in verschlüsselten Räumen) ----------
+  // ---------- Key (encrypted rooms only) ----------
 
   const keyText = encrypted ? keyFromHash(location.hash) : null;
   let key: CryptoKey | null = null;
@@ -117,7 +117,7 @@ export async function initRoom(root: HTMLElement) {
     return;
   }
 
-  // Der Link enthält in verschlüsselten Räumen den Schlüssel
+  // In encrypted rooms, the link carries the key
   const roomUrl = `${location.origin}/${code}${keyText ? `#k=${keyText}` : ''}`;
   const shownUrl = keyText ? `${location.host}/${code}#k=${keyText.slice(0, 6)}…` : roomUrl;
 
@@ -125,7 +125,7 @@ export async function initRoom(root: HTMLElement) {
     $('locked').hidden = false;
     $('room-content').hidden = true;
     $('status').hidden = true;
-    // Ein QR-Code ohne Schlüssel würde nur wieder zu dieser Sperre führen
+    // A QR code without the key would only lead back to this lock screen
     $('toggle-qr').hidden = true;
     const form = $('unlock') as HTMLFormElement;
     const input = $('unlock-link') as HTMLInputElement;
@@ -140,7 +140,7 @@ export async function initRoom(root: HTMLElement) {
           return;
         }
       } catch {
-        // kein gültiger Link
+        // not a valid link
       }
       err.hidden = false;
     });
@@ -175,7 +175,7 @@ export async function initRoom(root: HTMLElement) {
 
   const items = new Map<string, View>();
 
-  // ---------- Teilen ----------
+  // ---------- Sharing ----------
 
   $('room-url').textContent = shownUrl;
   $('copy-link').addEventListener('click', async () => {
@@ -193,7 +193,7 @@ export async function initRoom(root: HTMLElement) {
       await QRCode.toCanvas($('qr') as HTMLCanvasElement, roomUrl, { width: 220, margin: 2 });
     }
   });
-  // Auf großen Bildschirmen (Laptop) den QR-Code direkt zeigen – dort scannt man ihn mit dem Handy
+  // On large screens (laptop), show the QR code right away: that is where you scan it with a phone
   if (matchMedia('(min-width: 720px)').matches) qrToggle.click();
 
   // ---------- Rendering ----------
@@ -201,7 +201,7 @@ export async function initRoom(root: HTMLElement) {
   function renderItem(item: View): HTMLLIElement {
     const li = h('li', { className: 'item' });
     li.dataset.id = item.id;
-    // Buttons beziehen sich per aria-describedby auf den Inhalt („Kopieren: Hallo Welt“)
+    // Buttons point to the content via aria-describedby ("Copy: Hello world")
     const bodyId = `item-${item.id}`;
     const foot = h('div', { className: 'item-foot' });
     const meta = h('span', { className: 'meta' }, formatTime(item.createdAt, lang));
@@ -219,7 +219,7 @@ export async function initRoom(root: HTMLElement) {
       body.querySelector('.file-icon')?.setAttribute('aria-hidden', 'true');
       let dl: HTMLElement;
       if (item.enc) {
-        // Verschlüsselt: herunterladen, im Browser entschlüsseln, dann speichern
+        // Encrypted: download, decrypt in the browser, then save
         const btn = h('button', { className: 'btn btn-small btn-primary', textContent: t.room.download });
         btn.addEventListener('click', () => downloadEncrypted(item, btn));
         dl = btn;
@@ -303,7 +303,7 @@ export async function initRoom(root: HTMLElement) {
     return true;
   }
 
-  // Screenreader-Ansagen für Änderungen, die von anderen Geräten kommen
+  // Screen reader announcements for changes coming from other devices
   const announcer = $('announcer');
   function announce(text: string) {
     announcer.textContent = '';
@@ -327,7 +327,7 @@ export async function initRoom(root: HTMLElement) {
     statusText.textContent = text;
   }
 
-  // ---------- WebSocket mit Reconnect ----------
+  // ---------- WebSocket with reconnect ----------
 
   let ws: WebSocket | null = null;
   let retry = 0;
@@ -397,7 +397,7 @@ export async function initRoom(root: HTMLElement) {
       const res = await fetch(api, { cache: 'no-store' });
       return res.status !== 404;
     } catch {
-      return true; // Netzwerkfehler ≠ Raum weg
+      return true; // network error ≠ room gone
     }
   }
 
@@ -405,7 +405,7 @@ export async function initRoom(root: HTMLElement) {
     setStatus('online', t.room.devices(n));
   }
 
-  // Nach Standby / Tab-Wechsel schnell wieder verbinden
+  // Reconnect quickly after standby / switching tabs
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && ws && ws.readyState === WebSocket.CLOSED) {
       retry = 0;
@@ -415,7 +415,7 @@ export async function initRoom(root: HTMLElement) {
 
   connect();
 
-  // ---------- Text senden ----------
+  // ---------- Sending text ----------
 
   async function sendText() {
     const text = textEl.value.trim();
@@ -452,10 +452,10 @@ export async function initRoom(root: HTMLElement) {
     }
   });
 
-  // ---------- Dateien hochladen ----------
+  // ---------- Uploading files ----------
 
   async function uploadFile(file: File) {
-    // Verschlüsselt wird die Datei etwas größer (Kopf + 16 Byte pro MiB)
+    // Encryption makes the file slightly larger (header + 16 bytes per MiB)
     if ((key ? encryptedSize(file.size) : file.size) > maxFile) {
       toast(t.room.fileTooLarge(file.name, formatBytes(maxFile)));
       return;
@@ -522,7 +522,7 @@ export async function initRoom(root: HTMLElement) {
     fileInput.value = '';
   });
 
-  // Drag & Drop auf der ganzen Seite
+  // Drag & drop anywhere on the page
   let dragDepth = 0;
   const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes('Files');
   window.addEventListener('dragenter', (e) => {
@@ -549,7 +549,7 @@ export async function initRoom(root: HTMLElement) {
     if (e.dataTransfer?.files.length) uploadFiles(e.dataTransfer.files);
   });
 
-  // Dateien (z. B. Screenshots) aus der Zwischenablage einfügen
+  // Paste files (e.g. screenshots) from the clipboard
   window.addEventListener('paste', (e) => {
     const files = e.clipboardData?.files;
     if (files && files.length > 0) {

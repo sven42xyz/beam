@@ -1,12 +1,12 @@
 export type ItemKind = 'text' | 'link' | 'file';
 
 /**
- * Ein Eintrag, wie ihn der Server speichert und verschickt.
+ * An item as the server stores and sends it.
  *
- * In verschlüsselten Räumen (`enc: true`) sind `content` (Text/Link) und `name`
- * (Dateiname, Typ, Originalgröße) Chiffretext im Base64url-Format, den nur die
- * Geräte mit dem Schlüssel lesen können. `kind` ist dort nur 'text' oder 'file',
- * ob ein Text ein Link ist, steht verschlüsselt im Inhalt.
+ * In encrypted rooms (`enc: true`), `content` (text/link) and `name` (file name,
+ * type, original size) are Base64url ciphertext that only devices holding the key
+ * can read. `kind` is then only 'text' or 'file'; whether a text is a link is part
+ * of the encrypted content.
  */
 export interface Item {
   id: string;
@@ -17,7 +17,7 @@ export interface Item {
   content?: string;
   /** file */
   name?: string;
-  /** Bei verschlüsselten Dateien: Größe des Chiffretexts */
+  /** For encrypted files: size of the ciphertext */
   size?: number;
   mime?: string;
 }

@@ -14,7 +14,7 @@ type ItemRow = {
   created_at: number;
 };
 
-/** wrong_mode: Klartext an einen verschlüsselten Raum (oder umgekehrt) */
+/** wrong_mode: plaintext sent to an encrypted room (or the other way round) */
 export type RoomError = 'not_found' | 'room_full' | 'wrong_mode';
 export type Result<T> = { ok: true; value: T } | { ok: false; error: RoomError };
 
@@ -32,12 +32,12 @@ function toItem(row: ItemRow, enc: boolean): Item {
 }
 
 /**
- * Ein Raum = ein Durable Object (SQLite-backed).
- * Live-Sync über die WebSocket Hibernation API, Aufräumen über einen Alarm.
+ * One room = one Durable Object (SQLite-backed).
+ * Live sync via the WebSocket Hibernation API, cleanup via an alarm.
  */
 export class Room extends DurableObject<Env> {
   private sql: SqlStorage;
-  /** Schema wird erst in init() angelegt, damit Aufrufe unbekannter Codes keinen Storage hinterlassen. */
+  /** The schema is only created in init(), so requests for unknown codes leave no storage behind. */
   private hasSchema: boolean;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -45,7 +45,7 @@ export class Room extends DurableObject<Env> {
     this.sql = ctx.storage.sql;
     this.hasSchema =
       this.sql.exec(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'meta'`).toArray().length > 0;
-    // Antwortet auf "ping" ohne das DO aus dem Hibernation-Zustand zu wecken
+    // Answers "ping" without waking the DO from hibernation
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
 
@@ -83,7 +83,7 @@ export class Room extends DurableObject<Env> {
     return this.getMeta('code');
   }
 
-  /** Ende-zu-Ende verschlüsselter Raum: Inhalte sind Chiffretext, den der Server nicht lesen kann. */
+  /** End-to-end encrypted room: content is ciphertext the server cannot read. */
   private get encrypted(): boolean {
     return this.getMeta('encrypted') === '1';
   }
@@ -92,7 +92,7 @@ export class Room extends DurableObject<Env> {
     return toItem(row, this.encrypted);
   }
 
-  /** Aktivität: Ablaufzeit auf jetzt + 24 h verschieben. */
+  /** Activity: push the expiry to now + 24 h. */
   private async touch(): Promise<number> {
     const now = Date.now();
     const expiresAt = now + ROOM_TTL_MS;
@@ -103,7 +103,7 @@ export class Room extends DurableObject<Env> {
 
   // ---------- RPC ----------
 
-  /** Legt den Raum an. false, wenn der Code schon vergeben ist. */
+  /** Creates the room. Returns false if the code is already taken. */
   async init(code: string, encrypted: boolean): Promise<boolean> {
     if (this.code) return false;
     this.createSchema();
@@ -118,14 +118,14 @@ export class Room extends DurableObject<Env> {
     return this.code !== null;
   }
 
-  /** null, wenn es den Raum nicht (mehr) gibt. */
+  /** null if the room does not exist (any more). */
   info(): { encrypted: boolean } | null {
     return this.code ? { encrypted: this.encrypted } : null;
   }
 
   /**
-   * Klartext-Räume bekommen `{ text, kind }`, verschlüsselte Räume `{ ciphertext }`.
-   * Die Art (Text/Link) eines verschlüsselten Eintrags steht im Chiffretext.
+   * Plaintext rooms receive `{ text, kind }`, encrypted rooms `{ ciphertext }`.
+   * Whether an encrypted item is text or a link is part of the ciphertext.
    */
   async addText(payload: { text: string; kind: 'text' | 'link' } | { ciphertext: string }): Promise<Result<Item>> {
     if (!this.code) return { ok: false, error: 'not_found' };
@@ -152,8 +152,8 @@ export class Room extends DurableObject<Env> {
     return { ok: true, value: item };
   }
 
-  /** Reserviert einen Platz für einen Upload. Der Eintrag ist bis commitFile() unsichtbar. */
-  /** In verschlüsselten Räumen ist `name` der Chiffretext von Name, Typ und Originalgröße. */
+  /** Reserves a slot for an upload. The item stays invisible until commitFile(). */
+  /** In encrypted rooms, `name` is the ciphertext of name, type and original size. */
   async reserveFile(
     name: string,
     size: number,
@@ -241,14 +241,14 @@ export class Room extends DurableObject<Env> {
   }
 
   async webSocketMessage(_ws: WebSocket, _message: string | ArrayBuffer) {
-    // Clients senden nur "ping" (per Auto-Response beantwortet). Alles andere läuft über HTTP.
+    // Clients only send "ping" (answered by the auto-response). Everything else goes over HTTP.
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string) {
     try {
       ws.close(code, reason);
     } catch {
-      // bereits geschlossen
+      // already closed
     }
     this.broadcastDeviceCount(ws);
   }
@@ -257,12 +257,12 @@ export class Room extends DurableObject<Env> {
     this.broadcastDeviceCount(ws);
   }
 
-  // ---------- Alarm: Raum nach 24 h Inaktivität löschen ----------
+  // ---------- Alarm: delete the room after 24 h of inactivity ----------
 
   async alarm() {
     const lastActivity = Number(this.getMeta('last_activity') ?? 0);
     if (lastActivity && Date.now() < lastActivity + ROOM_TTL_MS) {
-      // Zwischenzeitlich Aktivität: neu planen
+      // Activity in the meantime: reschedule
       await this.ctx.storage.setAlarm(lastActivity + ROOM_TTL_MS);
       return;
     }
@@ -274,7 +274,7 @@ export class Room extends DurableObject<Env> {
       try {
         ws.close(4404, 'Room expired');
       } catch {
-        // ignorieren
+        // ignore
       }
     }
     await this.ctx.storage.deleteAlarm();
@@ -305,7 +305,7 @@ export class Room extends DurableObject<Env> {
     return this.sql.exec<ItemRow>('SELECT * FROM items WHERE id = ?', id).toArray()[0];
   }
 
-  /** Zählt auch laufende Uploads mit, damit parallele Uploads das Limit nicht überschreiten. */
+  /** Also counts uploads in progress, so parallel uploads cannot exceed the limit. */
   private countItems(): number {
     return this.sql.exec<{ n: number }>('SELECT COUNT(*) AS n FROM items').one().n;
   }
@@ -347,7 +347,7 @@ export class Room extends DurableObject<Env> {
       try {
         ws.send(data);
       } catch {
-        // Socket schließt gerade
+        // socket is closing
       }
     }
   }
@@ -359,7 +359,7 @@ export class Room extends DurableObject<Env> {
       try {
         ws.send(message);
       } catch {
-        // ignorieren
+        // ignore
       }
     }
   }

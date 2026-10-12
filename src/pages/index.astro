@@ -135,7 +135,7 @@ const featureIcons = ['live', 'file', 'lock', 'key', 'clock', 'code'] as const;
   /* ---------- Hero ---------- */
   .hero {
     display: grid;
-    /* minmax(0, …): sonst bestimmt die Eigenbreite des Code-Inputs die Spaltenbreite */
+    /* minmax(0, …): otherwise the code input's intrinsic width dictates the column width */
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     padding: 32px 0 24px;
@@ -415,7 +415,7 @@ const featureIcons = ['live', 'file', 'lock', 'key', 'clock', 'code'] as const;
       });
       const data = (await res.json()) as { code?: string; error?: string };
       if (!res.ok) throw new Error(apiErrorMessage(t, data.error, res.status));
-      // Der Schlüssel entsteht hier und steht nur im Fragment: Browser schicken es nie an den Server
+      // The key is created here and only lives in the fragment: browsers never send it to the server
       location.href = encryptBox.checked ? `/${data.code}#k=${generateKey()}` : `/${data.code}`;
     } catch (e) {
       showError(e instanceof Error ? e.message : t.errors.createFailed);
@@ -435,7 +435,7 @@ const featureIcons = ['live', 'file', 'lock', 'key', 'clock', 'code'] as const;
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Ganzer Link eingefügt (z. B. mit Schlüssel)? Dann direkt dorthin
+    // A full link pasted (e.g. with a key)? Then go straight there
     const value = input.value.trim();
     try {
       const url = new URL(value);
@@ -445,7 +445,7 @@ const featureIcons = ['live', 'file', 'lock', 'key', 'clock', 'code'] as const;
         return;
       }
     } catch {
-      // kein Link, sondern ein Code
+      // not a link but a code
     }
     const code = normalizeCode(value);
     if (!code) return showError(t.errors.invalidCode);

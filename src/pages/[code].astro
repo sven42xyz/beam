@@ -12,7 +12,7 @@ const t = useTranslations(lang);
 const raw = Astro.params.code ?? '';
 const code = normalizeCode(raw);
 
-// Kleinbuchstaben o. Ä. auf die kanonische Schreibweise umleiten
+// Redirect lowercase and similar variants to the canonical spelling
 if (code && code !== raw) return Astro.redirect(`/${code}`, 301);
 
 const info = code ? await env.ROOM.get(env.ROOM.idFromName(code)).info() : null;
@@ -193,7 +193,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
   .small {
     font-size: 13px;
   }
-  /* Gleiches Abstandsraster wie .room, auch innerhalb der Hülle */
+  /* Same spacing rhythm as .room, also inside the wrapper */
   #room-content {
     display: flex;
     flex-direction: column;
@@ -244,7 +244,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     border: 1px solid var(--border);
     background: var(--bg);
   }
-  /* Das Dateifeld ist unsichtbar: Tastaturfokus am Button sichtbar machen */
+  /* The file input is invisible: show keyboard focus on the button instead */
   .file-input:focus-visible + label {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -310,7 +310,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     font-size: 18px;
   }
 
-  /* Einträge werden per JS erzeugt → :global */
+  /* Items are created by JS → :global */
   .room :global(.item) {
     background: var(--surface);
     border: 1px solid var(--border);

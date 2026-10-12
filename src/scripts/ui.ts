@@ -14,7 +14,7 @@ export async function copyText(text: string): Promise<boolean> {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
-    // Fallback für unsichere Kontexte (z. B. http im LAN)
+    // Fallback for insecure contexts (e.g. plain http on the LAN)
     const ta = document.createElement('textarea');
     ta.value = text;
     ta.setAttribute('readonly', '');

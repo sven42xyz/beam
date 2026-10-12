@@ -30,7 +30,7 @@ function clientIp(request: Request): string {
 
 async function rateLimited(limiter: RateLimit, request: Request): Promise<Response | null> {
   const { success } = await limiter.limit({ key: clientIp(request) });
-  return success ? null : error(429, 'rate_limited', 'Zu viele Anfragen. Bitte kurz warten.');
+  return success ? null : error(429, 'rate_limited', 'Too many requests. Please wait a moment.');
 }
 
 function isLink(text: string): boolean {
@@ -57,7 +57,7 @@ function sanitizeFilename(raw: string | null): string {
       name = raw;
     }
   }
-  // Pfadanteile und Steuerzeichen entfernen
+  // Strip path components and control characters
   name = name.split(/[/\\]/).pop()!.replace(/[\x00-\x1f\x7f]/g, '').trim();
   return name.slice(0, 200) || 'datei';
 }
@@ -65,7 +65,7 @@ function sanitizeFilename(raw: string | null): string {
 // ---------- Handler ----------
 
 /**
- * Prüft das Turnstile-Token. Ohne konfigurierte Keys (Site Key + Secret) ist Turnstile deaktiviert.
+ * Verifies the Turnstile token. Without configured keys (site key + secret), Turnstile is disabled.
  * Docs: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
  */
 async function verifyTurnstile(env: Env, token: unknown, ip: string): Promise<boolean> {
@@ -96,7 +96,7 @@ async function createRoom(request: Request, env: Env) {
   try {
     body = await request.json();
   } catch {
-    // leerer Body ist ok, solange Turnstile nicht aktiv ist
+    // an empty body is fine as long as Turnstile is not active
   }
   if (!(await verifyTurnstile(env, body.turnstileToken, clientIp(request)))) {
     return error(403, 'captcha_failed', 'Turnstile verification failed.');
@@ -106,7 +106,7 @@ async function createRoom(request: Request, env: Env) {
     const code = generateCode();
     if (await roomStub(env, code).init(code, body.encrypted === true)) return json({ code }, 201);
   }
-  return error(503, 'no_code', 'Konnte keinen freien Code finden. Bitte erneut versuchen.');
+  return error(503, 'no_code', 'Could not find a free code. Please try again.');
 }
 
 async function postText(request: Request, env: Env, code: string) {
@@ -114,27 +114,27 @@ async function postText(request: Request, env: Env, code: string) {
   if (limited) return limited;
 
   const length = Number(request.headers.get('Content-Length') ?? 0);
-  if (length > MAX_CIPHERTEXT_CHARS + 1024) return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
+  if (length > MAX_CIPHERTEXT_CHARS + 1024) return error(413, 'too_large', 'Text is too long (max. 100 KB).');
 
   let body: { text?: unknown; ciphertext?: unknown };
   try {
     body = await request.json();
   } catch {
-    return error(400, 'bad_request', 'Ungültiger JSON-Body.');
+    return error(400, 'bad_request', 'Invalid JSON body.');
   }
-  // Verschlüsselter Raum: Chiffretext unverändert speichern, der Server kann ihn nicht lesen
+  // Encrypted room: store the ciphertext as is, the server cannot read it
   if (typeof body.ciphertext === 'string') {
     const ciphertext = body.ciphertext;
     if (!ciphertext || !BASE64URL.test(ciphertext)) return error(400, 'bad_request', 'Invalid ciphertext.');
-    if (ciphertext.length > MAX_CIPHERTEXT_CHARS) return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
+    if (ciphertext.length > MAX_CIPHERTEXT_CHARS) return error(413, 'too_large', 'Text is too long (max. 100 KB).');
     const result = await roomStub(env, code).addText({ ciphertext });
     return result.ok ? json(result.value, 201) : roomError(result.error);
   }
 
   const text = typeof body.text === 'string' ? body.text.trim() : '';
-  if (!text) return error(400, 'empty', 'Text ist leer.');
+  if (!text) return error(400, 'empty', 'Text is empty.');
   if (new TextEncoder().encode(text).length > MAX_TEXT_BYTES) {
-    return error(413, 'too_large', 'Text ist zu lang (max. 100 KB).');
+    return error(413, 'too_large', 'Text is too long (max. 100 KB).');
   }
 
   const result = await roomStub(env, code).addText({ text, kind: isLink(text) ? 'link' : 'text' });
@@ -146,12 +146,12 @@ async function uploadFile(request: Request, env: Env, code: string) {
   if (limited) return limited;
 
   const lengthHeader = request.headers.get('Content-Length');
-  if (!lengthHeader || !request.body) return error(411, 'length_required', 'Content-Length fehlt.');
+  if (!lengthHeader || !request.body) return error(411, 'length_required', 'Content-Length is missing.');
   const size = Number(lengthHeader);
-  if (!Number.isSafeInteger(size) || size < 0) return error(400, 'bad_request', 'Ungültige Content-Length.');
-  if (size > MAX_FILE_BYTES) return error(413, 'too_large', 'Datei ist zu groß (max. 100 MB).');
+  if (!Number.isSafeInteger(size) || size < 0) return error(400, 'bad_request', 'Invalid Content-Length.');
+  if (size > MAX_FILE_BYTES) return error(413, 'too_large', 'File is too large (max. 100 MB).');
 
-  // Verschlüsselt: X-Filename enthält Chiffretext (Name, Typ, Originalgröße), der Inhalt ist opak
+  // Encrypted: X-Filename holds ciphertext (name, type, original size), the body is opaque
   const encrypted = request.headers.get('X-Encrypted') === '1';
   let name: string;
   let mime: string;
@@ -170,7 +170,7 @@ async function uploadFile(request: Request, env: Env, code: string) {
   const { id, r2Key } = reserved.value;
 
   try {
-    // FixedLengthStream erzwingt, dass genau `size` Bytes ankommen (R2 braucht eine bekannte Länge)
+    // FixedLengthStream enforces exactly `size` bytes (R2 needs a known length)
     const { readable, writable } = new FixedLengthStream(size);
     await Promise.all([
       request.body.pipeTo(writable),
@@ -179,7 +179,7 @@ async function uploadFile(request: Request, env: Env, code: string) {
   } catch (e) {
     await stub.abortFile(id);
     console.error('upload failed', e);
-    return error(400, 'upload_failed', 'Upload fehlgeschlagen.');
+    return error(400, 'upload_failed', 'Upload failed.');
   }
 
   const committed = await stub.commitFile(id);
@@ -192,15 +192,15 @@ async function uploadFile(request: Request, env: Env, code: string) {
 
 async function downloadFile(env: Env, code: string, id: string) {
   const meta = await roomStub(env, code).getFile(id);
-  if (!meta) return error(404, 'not_found', 'Datei nicht gefunden.');
+  if (!meta) return error(404, 'not_found', 'File not found.');
   const object = await env.FILES.get(meta.r2Key);
-  if (!object) return error(404, 'not_found', 'Datei nicht gefunden.');
+  if (!object) return error(404, 'not_found', 'File not found.');
 
   return new Response(object.body, {
     headers: {
       'Content-Type': meta.mime,
       'Content-Length': String(object.size),
-      // Verschlüsselte Dateien entschlüsselt der Browser selbst und vergibt dabei den echten Namen
+      // The browser decrypts encrypted files itself and applies the real file name
       'Content-Disposition': meta.encrypted ? 'attachment; filename="tee-encrypted.bin"' : contentDisposition(meta.name),
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
@@ -212,7 +212,7 @@ async function deleteItem(request: Request, env: Env, code: string, id: string) 
   const limited = await rateLimited(env.RL_WRITE, request);
   if (limited) return limited;
   const deleted = await roomStub(env, code).deleteItem(id);
-  return deleted ? new Response(null, { status: 204 }) : error(404, 'not_found', 'Eintrag nicht gefunden.');
+  return deleted ? new Response(null, { status: 204 }) : error(404, 'not_found', 'Item not found.');
 }
 
 // ---------- Router ----------
@@ -229,17 +229,17 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
   if (!match) return error(404, 'not_found', 'Not found');
 
   const code = normalizeCode(match[1]);
-  if (!code) return error(404, 'not_found', 'Raum nicht gefunden oder abgelaufen.');
+  if (!code) return error(404, 'not_found', 'Room not found or expired.');
   const [, , action, id] = match;
 
   switch (`${method} ${action ?? ''}${id ? '/:id' : ''}`) {
     case 'GET ':
       return (await roomStub(env, code).exists())
         ? json({ code })
-        : error(404, 'not_found', 'Raum nicht gefunden oder abgelaufen.');
+        : error(404, 'not_found', 'Room not found or expired.');
     case 'GET ws':
       if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
-        return error(426, 'upgrade_required', 'WebSocket erwartet.');
+        return error(426, 'upgrade_required', 'WebSocket expected.');
       }
       return roomStub(env, code).fetch(request);
     case 'POST text':

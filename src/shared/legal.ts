@@ -1,11 +1,11 @@
 /**
- * Angaben für Impressum und Datenschutzerklärung.
+ * Provider details for the Impressum and the privacy policy.
  *
- * § 5 DDG verlangt eine ladungsfähige Postanschrift (kein Postfach) und eine
- * E-Mail-Adresse, die tatsächlich Post annimmt. contact@chapter42.de wird per
- * Cloudflare Email Routing an das private Postfach weitergeleitet.
+ * § 5 DDG requires a postal address at which legal documents can be served
+ * (no P.O. box) and an email address that actually receives mail.
+ * contact@chapter42.de is forwarded to a private mailbox by Cloudflare Email Routing.
  *
- * Solange `ready` false ist, werden die Seiten nicht verlinkt und liefern 404.
+ * While `ready` is false, the pages are not linked and return 404.
  */
 export const LEGAL = {
   ready: true,
@@ -14,11 +14,11 @@ export const LEGAL = {
   city: '51588 Nümbrecht',
   country: 'Deutschland',
   email: 'contact@chapter42.de',
-  /** Zuständige Datenschutz-Aufsichtsbehörde (Bundesland des Wohnsitzes) */
+  /** Data protection supervisory authority for the state of residence */
   authority: {
     name: 'Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen',
     url: 'https://www.ldi.nrw.de',
   },
-  /** Stand der Datenschutzerklärung */
+  /** Date of the current privacy policy */
   updated: '2026-10-10',
 };

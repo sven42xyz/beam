@@ -9,7 +9,7 @@ export function isLang(value: unknown): value is Lang {
   return typeof value === 'string' && (LANGS as readonly string[]).includes(value);
 }
 
-/** Cookie hat Vorrang, sonst Accept-Language (nach q-Wert sortiert), sonst Englisch. */
+/** The cookie wins, then Accept-Language (sorted by q value), then English. */
 export function pickLang(cookie: string | undefined, acceptLanguage: string | null): Lang {
   if (isLang(cookie)) return cookie;
   const prefs = (acceptLanguage ?? '')
@@ -129,7 +129,7 @@ const de = {
     items: 'Einträge',
     empty: 'Noch nichts hier. Schick etwas von einem beliebigen Gerät.',
     dropzone: 'Dateien loslassen zum Senden',
-    // Client
+    // Client-side strings
     linkCopied: 'Link kopiert',
     copied: 'Kopiert',
     copy: 'Kopieren',
@@ -298,7 +298,7 @@ export function useTranslations(lang: Lang): Dict {
   return DICTS[lang];
 }
 
-/** Übersetzt einen API-Fehlercode (`{ error: "room_full" }`) für die Anzeige. */
+/** Translates an API error code (`{ error: "room_full" }`) for display. */
 export function apiErrorMessage(t: Dict, code: string | undefined, status: number): string {
   if (code && code in t.errors) {
     const msg = t.errors[code as keyof Dict['errors']];

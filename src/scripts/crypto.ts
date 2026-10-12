@@ -1,16 +1,16 @@
-// Ende-zu-Ende-Verschlüsselung im Browser (Web Crypto, AES-256-GCM).
+// End-to-end encryption in the browser (Web Crypto, AES-256-GCM).
 //
-// Der Schlüssel entsteht beim Erstellen des Raums und steht nur im Fragment des
-// Links (`/ABC234#k=…`). Browser schicken das Fragment nie an den Server.
+// The key is created when the room is created and only lives in the link's
+// fragment (`/ABC234#k=…`). Browsers never send the fragment to the server.
 //
-// Texte und Metadaten: Base64url( IV[12] | Chiffretext+Tag )
+// Texts and metadata: Base64url( IV[12] | ciphertext+tag )
 //
-// Dateien, in Blöcken, damit auch 100 MB auf dem Handy gehen:
-//   Kopf[16]  = "TEE1" | Nonce-Präfix[8] | Blockgröße (u32, big endian)
-//   Block i   = AES-GCM(Klartext[i]), IV = Präfix[8] | i (u32 BE),
-//               AAD = [1] beim letzten Block, sonst [0]
-// Der Zähler im IV verhindert das Vertauschen von Blöcken, das AAD-Flag das
-// unbemerkte Abschneiden am Ende.
+// Files, in chunks, so that even 100 MB work on a phone:
+//   header[16] = "TEE1" | nonce prefix[8] | chunk size (u32, big endian)
+//   chunk i    = AES-GCM(plaintext[i]), IV = prefix[8] | i (u32 BE),
+//                AAD = [1] for the last chunk, otherwise [0]
+// The counter in the IV prevents reordering chunks, the AAD flag prevents
+// silently truncating the end.
 
 const MAGIC = [0x54, 0x45, 0x45, 0x31]; // "TEE1"
 const HEADER_BYTES = 16;
@@ -37,9 +37,9 @@ export function fromBase64Url(text: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-// ---------- Schlüssel ----------
+// ---------- Keys ----------
 
-/** Neuer zufälliger Raumschlüssel, als Base64url für den Link. */
+/** New random room key, as Base64url for the link. */
 export function generateKey(): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
 }
@@ -50,13 +50,13 @@ export async function importKey(encoded: string): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
-/** Liest den Schlüssel aus einem Link-Fragment (`#k=…`). */
+/** Reads the key from a link fragment (`#k=…`). */
 export function keyFromHash(hash: string): string | null {
   const match = /(?:^#|&)k=([A-Za-z0-9_-]{43})(?:&|$)/.exec(hash);
   return match ? match[1] : null;
 }
 
-// ---------- Kleine Daten (Texte, Metadaten) ----------
+// ---------- Small data (texts, metadata) ----------
 
 export async function encryptJson(key: CryptoKey, value: unknown): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
@@ -77,9 +77,9 @@ export async function decryptJson<T>(key: CryptoKey, encoded: string): Promise<T
   return JSON.parse(dec.decode(pt)) as T;
 }
 
-// ---------- Dateien ----------
+// ---------- Files ----------
 
-/** Größe einer verschlüsselten Datei: Kopf + Klartext + ein Tag pro Block (mind. ein Block). */
+/** Size of an encrypted file: header + plaintext + one tag per chunk (at least one chunk). */
 export function encryptedSize(plainBytes: number): number {
   return HEADER_BYTES + plainBytes + TAG_BYTES * Math.max(1, Math.ceil(plainBytes / CHUNK_BYTES));
 }
@@ -94,7 +94,7 @@ function chunkIv(prefix: Uint8Array, index: number): Uint8Array<ArrayBuffer> {
 const LAST = new Uint8Array([1]);
 const NOT_LAST = new Uint8Array([0]);
 
-/** Verschlüsselt eine Datei blockweise. Ergebnis ist ein Blob in exakt `encryptedSize(file.size)` Bytes. */
+/** Encrypts a file chunk by chunk. The result is a Blob of exactly `encryptedSize(file.size)` bytes. */
 export async function encryptFile(key: CryptoKey, file: Blob, onProgress?: (done: number) => void): Promise<Blob> {
   const prefix = crypto.getRandomValues(new Uint8Array(8));
   const header = new Uint8Array(HEADER_BYTES);
@@ -117,7 +117,7 @@ export async function encryptFile(key: CryptoKey, file: Blob, onProgress?: (done
   return new Blob(parts, { type: 'application/octet-stream' });
 }
 
-/** Entschlüsselt eine heruntergeladene Datei blockweise, während sie ankommt. */
+/** Decrypts a downloaded file chunk by chunk while it arrives. */
 export async function decryptStream(
   key: CryptoKey,
   body: ReadableStream<Uint8Array>,
@@ -134,7 +134,7 @@ export async function decryptStream(
     buffer = next;
   };
 
-  // Kopf lesen
+  // Read the header
   let done = false;
   while (buffer.length < HEADER_BYTES && !done) {
     const r = await reader.read();
@@ -160,7 +160,7 @@ export async function decryptStream(
     index++;
   };
 
-  // Ein Block gilt erst als „nicht der letzte“, wenn danach noch Daten kommen
+  // A chunk only counts as "not the last" once more data follows it
   while (!done) {
     const r = await reader.read();
     done = r.done;

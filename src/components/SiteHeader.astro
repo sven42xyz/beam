@@ -4,7 +4,7 @@ import { useTranslations } from '../i18n';
 import { REPO_URL } from '../shared/site';
 
 interface Props {
-  /** Blendet den GitHub-Link auf schmalen Screens aus (Platz für Inhalte im Slot) */
+  /** Hides the GitHub link on narrow screens (to make room for slot content) */
   compact?: boolean;
 }
 const { compact = false } = Astro.props;
@@ -23,7 +23,7 @@ const t = useTranslations(Astro.locals.lang);
 </header>
 
 <style>
-  /* Feste Seitenbreite, unabhängig von der Inhaltsbreite der jeweiligen Seite */
+  /* Fixed page width, independent of each page's content width */
   .site-header {
     display: flex;
     align-items: center;

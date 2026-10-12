@@ -1,8 +1,8 @@
 <!doctype html>
 <!--
-  Vorlage für die Vorschaubilder (Open Graph, 1200×630).
-  Rendern: npm run og  → public/og-de.png, public/og-en.png
-  Sprache per Query: og.html?lang=en
+  Template for the social preview images (Open Graph, 1200×630).
+  Render: npm run og  → public/og-de.png, public/og-en.png
+  Language via query: og.html?lang=en
 -->
 <html>
   <head>
@@ -94,7 +94,7 @@
 
       <h1 id="headline"></h1>
 
-      <!-- Standbild der Animation: Datei unterwegs, Kopie schon angekommen -->
+      <!-- Still frame of the animation: file in flight, copy already arrived -->
       <svg class="scene" viewBox="0 0 640 150">
         <defs>
           <radialGradient id="glow">
@@ -107,7 +107,7 @@
             <path d="M6 17h13M6 22h9" stroke="#8a91ad" stroke-width="1.6" stroke-linecap="round"></path>
           </symbol>
         </defs>
-        <!-- Spur zuerst: verschwindet hinter den gefüllten Bildschirmen -->
+        <!-- Trail first, so it disappears behind the filled screens -->
         <path d="M90 70 Q310 -30 530 73" fill="none" stroke="#8ea2ff" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 7"></path>
         <g fill="none" stroke="#3a4168" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
           <rect x="62" y="24" width="56" height="102" rx="11" fill="#0f1220"></rect>

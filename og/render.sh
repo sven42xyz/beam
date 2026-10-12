@@ -1,5 +1,5 @@
 #!/bin/sh
-# Rendert og/og.html als 1200×630-PNG pro Sprache nach public/.
+# Renders og/og.html as a 1200×630 PNG per language into public/.
 set -e
 cd "$(dirname "$0")/.."
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"

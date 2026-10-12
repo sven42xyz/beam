@@ -4,14 +4,14 @@ import { useTranslations } from '../i18n';
 
 interface Props {
   title?: string;
-  /** Räume sind privat und kurzlebig: nicht in Suchmaschinen aufnehmen */
+  /** Rooms are private and short-lived: keep them out of search engines */
   noindex?: boolean;
 }
 const { lang } = Astro.locals;
 const t = useTranslations(lang);
 const { title = t.meta.title, noindex = false } = Astro.props;
 
-// Vorschaubilder für geteilte Links (Open Graph / Twitter), pro Sprache
+// Social previews for shared links (Open Graph / Twitter), per language
 const site = Astro.site ?? Astro.url;
 const pageUrl = new URL(Astro.url.pathname, site).href;
 const ogImage = new URL(`/og-${lang}.png`, site).href;

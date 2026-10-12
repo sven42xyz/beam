@@ -1,25 +1,25 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tee",
-  // Eigener Entrypoint: API-Routen + Astro-Handler + Export des Durable Objects
+  // Custom entrypoint: API routes + Astro handler + Durable Object export
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-06",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
-  // Statische Assets (vom Astro-Build befüllt)
+  // Static assets (filled by the Astro build)
   "assets": { "binding": "ASSETS" },
 
-  // Ein Durable Object pro Raum
+  // One Durable Object per room
   "durable_objects": {
     "bindings": [{ "name": "ROOM", "class_name": "Room" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
 
-  // Dateien – EU-Jurisdiktion: Daten bleiben in der EU
+  // Files. EU jurisdiction: data stays in the EU
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files", "jurisdiction": "eu" }],
 
-  // Rate Limiting pro IP (period: 10 oder 60 Sekunden)
+  // Rate limiting per IP (period: 10 or 60 seconds)
   "ratelimits": [
     {
       "name": "RL_CREATE",
@@ -33,20 +33,20 @@
     }
   ],
 
-  // Turnstile (Raumerstellung). Widget „tee Raumerstellung“. Leer = deaktiviert.
-  // Secret: `wrangler secret put TURNSTILE_SECRET_KEY`. Lokal: .dev.vars (siehe .dev.vars.example)
+  // Turnstile (room creation), widget "tee Raumerstellung". Empty = disabled.
+  // Secret: `wrangler secret put TURNSTILE_SECRET_KEY`. Locally: .dev.vars (see .dev.vars.example)
   "vars": { "TURNSTILE_SITE_KEY": "0x4AAAAAAFTFRdi6GsGoj81e" },
 
-  // Eigene Domain (DNS-Record wird beim Deploy automatisch angelegt)
+  // Custom domain (the DNS record is created automatically on deploy)
   "routes": [{ "pattern": "tee.chapter42.de", "custom_domain": true }],
 
-  // workers.dev-URLs für Produktion und Previews
+  // workers.dev URLs for production and previews
   "workers_dev": true,
   "preview_urls": true,
 
-  // Worker Previews (`wrangler preview`): Bindings werden nicht geerbt und müssen hier
-  // erneut deklariert werden. Eigener Bucket + eigene Rate-Limit-Namespaces, damit
-  // Preview-Daten nicht mit Produktion vermischt werden.
+  // Worker Previews (`wrangler preview`): bindings are not inherited and have to be
+  // declared again here. Separate bucket and rate limit namespaces, so preview data
+  // never mixes with production.
   "previews": {
     "vars": { "TURNSTILE_SITE_KEY": "0x4AAAAAAFTFRdi6GsGoj81e" },
     "durable_objects": {

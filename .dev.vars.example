@@ -1,4 +1,4 @@
-# Lokale Entwicklung: offizielle Turnstile-Test-Keys (immer erfolgreich, unsichtbar)
+# Local development: Cloudflare's official Turnstile test keys (always pass, invisible)
 # https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

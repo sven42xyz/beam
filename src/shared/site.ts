@@ -1,3 +1,3 @@
 export const REPO_URL = 'https://github.com/sven42xyz/tee';
-/** Optionaler „Unterstützen“-Link (z. B. Ko-fi, GitHub Sponsors). Leer = wird nicht angezeigt. */
+/** Optional support link (e.g. Ko-fi, GitHub Sponsors). Empty = not shown. */
 export const SUPPORT_URL = '';
