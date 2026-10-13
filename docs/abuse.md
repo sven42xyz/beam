@@ -15,7 +15,7 @@ This is the operator runbook for tee. It is not legal advice.
 | **Unblock** | Back to normal, including normal expiry (a room that is already past its expiry is deleted shortly after). |
 | **Delete** | Room and files are deleted immediately. |
 
-Reports in the category **child sexual abuse material (CSAM)** block the room automatically, before anyone has looked at it.
+Reports in the categories **child sexual abuse material (CSAM)** and **sexual violence / intimate images without consent** block the room automatically, before anyone has looked at it.
 
 ## Child sexual abuse material
 
@@ -28,6 +28,14 @@ Reports in the category **child sexual abuse material (CSAM)** block the room au
    - [jugendschutz.net](https://www.jugendschutz.net/hinweis-geben) or the [eco complaints office](https://www.eco.de/themen/beschwerdestelle/), which forward to law enforcement.
 4. In encrypted rooms you cannot see the content and the authorities can only read it with the link including the key. If the reporter left a contact, tell the authorities.
 5. Note what you did and when (the moderation page shows the stored reports).
+
+## Sexual violence and intimate images without consent
+
+Covers depictions of sexual violence, intimate images or videos shared without the person's consent (§ 201a, § 184k StGB), including hidden recordings and AI-generated or manipulated nude images of real people, and violent or animal pornography (§ 184a StGB).
+
+1. Do not share the content. The room is already blocked.
+2. If the reporter is the person shown and wants to press charges, **freeze** the room and point them to the police; otherwise **delete** it.
+3. Reply to the reporter if they left an email address.
 
 ## Other categories
 

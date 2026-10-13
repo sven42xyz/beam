@@ -1,4 +1,5 @@
 import { apiErrorMessage, type Dict } from '../i18n';
+import { AUTO_BLOCK_CATEGORIES, type ReportCategory } from '../shared/moderation';
 
 /**
  * "Report content" dialog. Works on every room view, including the lock screen
@@ -61,7 +62,7 @@ export function initReport(code: string, t: Dict) {
       done.hidden = false;
       document.getElementById('report-done-text')!.textContent =
         t.room.reportThanks(data.id ?? '') + (data.blocked ? ` ${t.room.reportBlocked}` : '');
-      document.getElementById('report-done-csam')!.hidden = category !== 'csam';
+      document.getElementById('report-done-csam')!.hidden = !AUTO_BLOCK_CATEGORIES.includes(category as ReportCategory);
     } catch (err) {
       errorEl.textContent = err instanceof Error ? err.message : t.errors.generic(0);
       errorEl.hidden = false;

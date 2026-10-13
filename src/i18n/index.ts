@@ -123,6 +123,7 @@ const de = {
     reportChoose: 'Bitte auswählen',
     reportCategories: {
       csam: 'Darstellung sexuellen Missbrauchs von Kindern',
+      sexual_violence: 'Sexuelle Gewalt oder intime Aufnahmen ohne Einwilligung',
       violence: 'Gewalt, Terror oder Hass',
       copyright: 'Urheberrechtsverletzung',
       malware: 'Schadsoftware oder Phishing',
@@ -140,7 +141,7 @@ const de = {
     reportClose: 'Schließen',
     reportThanks: (id: string) => `Danke, deine Meldung ist eingegangen (Nr. ${id.slice(0, 8)}).`,
     reportBlocked: 'Der Raum wurde vorsorglich gesperrt.',
-    reportCsamHint: 'Bitte die Inhalte nicht herunterladen oder weitergeben. Du kannst sie zusätzlich bei der Polizei oder bei jugendschutz.net melden.',
+    reportCsamHint: 'Bitte die Inhalte nicht herunterladen oder weitergeben. Du kannst sie zusätzlich bei der Polizei melden, Darstellungen von Kindern auch bei jugendschutz.net.',
     blockedTitle: 'Dieser Raum wurde gesperrt',
     blockedText: 'Der Raum wurde wegen einer Meldung oder eines Verstoßes gegen die Nutzungsbedingungen gesperrt. Seine Inhalte sind nicht mehr abrufbar.',
     roomBlockedNow: 'Der Raum wurde gesperrt.',
@@ -295,6 +296,7 @@ const en: Dict = {
     reportChoose: 'Please choose',
     reportCategories: {
       csam: 'Child sexual abuse material',
+      sexual_violence: 'Sexual violence or intimate images without consent',
       violence: 'Violence, terrorism or hate',
       copyright: 'Copyright infringement',
       malware: 'Malware or phishing',

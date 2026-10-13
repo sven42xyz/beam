@@ -140,6 +140,7 @@ export async function adminUrl(env: Env, origin: string, code: string): Promise<
 
 const CATEGORY_LABELS: Record<ReportCategory, string> = {
   csam: 'Darstellung sexuellen Missbrauchs von Kindern',
+  sexual_violence: 'Sexuelle Gewalt oder intime Aufnahmen ohne Einwilligung',
   violence: 'Gewalt, Terror oder Hass',
   copyright: 'Urheberrechtsverletzung',
   malware: 'Schadsoftware oder Phishing',
@@ -201,9 +202,16 @@ export async function sendReportMail(
     lines.push(
       'WICHTIG bei Missbrauchsdarstellungen:',
       '- Inhalte NICHT öffnen oder herunterladen.',
-      '- Raum über den Link oben löschen.',
+      '- Raum über den Link oben einfrieren (bei Anzeige) oder löschen.',
       '- Meldung an die Polizei bzw. das BKA oder an jugendschutz.net weitergeben',
       '  (Raum-Code und Zeitpunkt, keine Inhalte). Ablauf: docs/abuse.md im Repo.',
+      '',
+    );
+  } else if (report.category === 'sexual_violence') {
+    lines.push(
+      'Hinweis: Intime Aufnahmen ohne Einwilligung oder sexuelle Gewalt.',
+      '- Inhalte nicht weitergeben. Raum ist gesperrt; einfrieren, falls Betroffene',
+      '  Anzeige erstatten wollen, sonst löschen. Ablauf: docs/abuse.md im Repo.',
       '',
     );
   }

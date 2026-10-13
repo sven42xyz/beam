@@ -55,7 +55,7 @@ Rooms are end-to-end encrypted by default (`src/scripts/crypto.ts`, Web Crypto, 
 Runbook: [docs/abuse.md](docs/abuse.md).
 
 - Every room has **"Report content"** (also on the lock screen of encrypted rooms). Reports are stored in the `Moderation` Durable Object (180 days) and emailed to the operator via the `send_email` binding (Email Routing).
-- **CSAM reports block the room immediately**, before anyone has reviewed them.
+- **Reports of CSAM or of sexual violence / intimate images without consent block the room immediately**, before anyone has reviewed them.
 - The email contains a **signed moderation link** (HMAC with `ADMIN_SECRET`, valid 14 days) to `/admin/<CODE>`: metadata and reports, never content, plus the actions block, freeze (keep up to 90 days for the authorities), unblock and delete.
 - Blocked rooms return `451` everywhere and disconnect all devices.
 - Terms of use: `/nutzungsbedingungen`.

@@ -1,6 +1,6 @@
 import { generateCode, normalizeCode } from '../shared/codes';
 import { MAX_CIPHERTEXT_CHARS, MAX_ENC_META_CHARS, MAX_FILE_BYTES, MAX_TEXT_BYTES } from '../shared/limits';
-import { isReportCategory, REPORT_CONTACT_MAX, REPORT_DESCRIPTION_MAX } from '../shared/moderation';
+import { AUTO_BLOCK_CATEGORIES, isReportCategory, REPORT_CONTACT_MAX, REPORT_DESCRIPTION_MAX } from '../shared/moderation';
 import { adminUrl, moderationStub, sendReportMail, verifyAdmin } from './moderation';
 import type { RoomError } from './room';
 
@@ -250,9 +250,9 @@ async function report(request: Request, env: Env, ctx: ExecutionContext, code: s
   const info = await room.info();
   if (!info) return error(404, 'not_found', 'Room not found or expired.');
 
-  // Reports of child sexual abuse material block the room right away, before anyone looks at it
-  const autoBlocked = body.category === 'csam' && !info.blocked;
-  if (autoBlocked) await room.moderate('block', 'CSAM report');
+  // Reports of CSAM or sexual violence / non-consensual intimate images block the room right away
+  const autoBlocked = AUTO_BLOCK_CATEGORIES.includes(body.category) && !info.blocked;
+  if (autoBlocked) await room.moderate('block', `Automatic: ${body.category} report`);
 
   const saved = await moderationStub(env).addReport({
     code,
