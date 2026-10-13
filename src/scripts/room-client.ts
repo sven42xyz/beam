@@ -384,10 +384,14 @@ export async function initRoom(root: HTMLElement) {
 
     ws.addEventListener('close', async (e) => {
       clearInterval(pingTimer);
-      if (e.code === 4404 || !(await roomExists())) {
+      // 4404 expired, 4410 deleted, 4451 blocked by the operator: reload shows the matching page
+      if (e.code === 4404 || e.code === 4410 || e.code === 4451 || !(await roomExists())) {
         gone = true;
-        setStatus('offline', t.room.expired);
-        location.reload();
+        setStatus('offline', e.code === 4451 ? t.room.roomBlockedNow : t.room.expired);
+        // Let someone who just reported the room read the confirmation first
+        const dialog = document.getElementById('report-dialog') as HTMLDialogElement | null;
+        if (dialog?.open) dialog.addEventListener('close', () => location.reload(), { once: true });
+        else location.reload();
         return;
       }
       setStatus('offline', t.room.reconnecting);
@@ -399,7 +403,7 @@ export async function initRoom(root: HTMLElement) {
   async function roomExists(): Promise<boolean> {
     try {
       const res = await fetch(api, { cache: 'no-store' });
-      return res.status !== 404;
+      return res.status !== 404 && res.status !== 451;
     } catch {
       return true; // network error ≠ room gone
     }

@@ -1,5 +1,7 @@
 import { generateCode, normalizeCode } from '../shared/codes';
 import { MAX_CIPHERTEXT_CHARS, MAX_ENC_META_CHARS, MAX_FILE_BYTES, MAX_TEXT_BYTES } from '../shared/limits';
+import { isReportCategory, REPORT_CONTACT_MAX, REPORT_DESCRIPTION_MAX } from '../shared/moderation';
+import { adminUrl, moderationStub, sendReportMail, verifyAdmin } from './moderation';
 import type { RoomError } from './room';
 
 const json = (data: unknown, status = 200, headers?: HeadersInit) =>
@@ -13,6 +15,8 @@ function roomError(e: RoomError): Response {
       return error(409, 'room_full', 'Room is full (max. 50 items).');
     case 'wrong_mode':
       return error(409, 'wrong_mode', 'Encryption mode does not match this room.');
+    case 'room_blocked':
+      return error(451, 'room_blocked', 'This room has been blocked.');
     case 'storage_full':
       return error(507, 'storage_full', 'tee is out of storage right now. Please try again later.');
     case 'quota_exceeded':
@@ -196,6 +200,7 @@ async function uploadFile(request: Request, env: Env, code: string) {
 
 async function downloadFile(env: Env, code: string, id: string) {
   const meta = await roomStub(env, code).getFile(id);
+  if (meta === 'blocked') return roomError('room_blocked');
   if (!meta) return error(404, 'not_found', 'File not found.');
   const object = await env.FILES.get(meta.r2Key);
   if (!object) return error(404, 'not_found', 'File not found.');
@@ -216,12 +221,76 @@ async function deleteItem(request: Request, env: Env, code: string, id: string) 
   const limited = await rateLimited(env.RL_WRITE, request);
   if (limited) return limited;
   const deleted = await roomStub(env, code).deleteItem(id);
+  if (deleted === 'blocked') return roomError('room_blocked');
   return deleted ? new Response(null, { status: 204 }) : error(404, 'not_found', 'Item not found.');
+}
+
+// ---------- Reports (DSA notice and action) ----------
+
+async function report(request: Request, env: Env, ctx: ExecutionContext, code: string) {
+  const limited = await rateLimited(env.RL_CREATE, request);
+  if (limited) return limited;
+
+  let body: { category?: unknown; description?: unknown; contact?: unknown; itemId?: unknown; goodFaith?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return error(400, 'bad_request', 'Invalid JSON body.');
+  }
+  const description = typeof body.description === 'string' ? body.description.trim() : '';
+  const contact = typeof body.contact === 'string' ? body.contact.trim().slice(0, REPORT_CONTACT_MAX) : '';
+  const itemId = typeof body.itemId === 'string' && /^[0-9a-f-]{36}$/.test(body.itemId) ? body.itemId : null;
+  if (!isReportCategory(body.category)) return error(400, 'bad_request', 'Invalid category.');
+  if (description.length < 5 || description.length > REPORT_DESCRIPTION_MAX) {
+    return error(400, 'bad_request', 'Description must be 5–2000 characters.');
+  }
+  if (body.goodFaith !== true) return error(400, 'bad_request', 'Good-faith confirmation missing.');
+
+  const room = roomStub(env, code);
+  const info = await room.info();
+  if (!info) return error(404, 'not_found', 'Room not found or expired.');
+
+  // Reports of child sexual abuse material block the room right away, before anyone looks at it
+  const autoBlocked = body.category === 'csam' && !info.blocked;
+  if (autoBlocked) await room.moderate('block', 'CSAM report');
+
+  const saved = await moderationStub(env).addReport({
+    code,
+    itemId,
+    category: body.category,
+    description,
+    contact: contact || null,
+    autoBlocked,
+  });
+  const link = await adminUrl(env, new URL(request.url).origin, code);
+  ctx.waitUntil(sendReportMail(env, saved, info, link));
+
+  return json({ id: saved.id, blocked: autoBlocked || info.blocked }, 201);
+}
+
+// ---------- Operator actions (signed link from the report email) ----------
+
+async function moderate(request: Request, env: Env, code: string) {
+  let body: { action?: unknown; exp?: unknown; sig?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return error(400, 'bad_request', 'Invalid JSON body.');
+  }
+  const exp = Number(body.exp);
+  if (typeof body.sig !== 'string' || !(await verifyAdmin(env, code, exp, body.sig))) {
+    return error(403, 'forbidden', 'Invalid or expired link.');
+  }
+  if (body.action !== 'block' && body.action !== 'freeze' && body.action !== 'unblock' && body.action !== 'delete') {
+    return error(400, 'bad_request', 'Unknown action.');
+  }
+  const done = await roomStub(env, code).moderate(body.action, 'Blocked by operator');
+  return done ? json({ ok: true, action: body.action }) : error(404, 'not_found', 'Room not found or expired.');
 }
 
 // ---------- Router ----------
 
-export async function handleApi(request: Request, env: Env): Promise<Response> {
+export async function handleApi(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
   const method = request.method;
 
@@ -229,7 +298,14 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     return method === 'POST' ? createRoom(request, env) : error(405, 'method_not_allowed', 'Method not allowed');
   }
 
-  const match = pathname.match(/^\/api\/rooms\/([^/]+)(?:\/(ws|text|files|items)(?:\/([0-9a-f-]{36}))?)?$/i);
+  const admin = pathname.match(/^\/api\/admin\/rooms\/([^/]+)$/);
+  if (admin) {
+    const code = normalizeCode(admin[1]);
+    if (!code) return error(404, 'not_found', 'Room not found or expired.');
+    return method === 'POST' ? moderate(request, env, code) : error(405, 'method_not_allowed', 'Method not allowed');
+  }
+
+  const match = pathname.match(/^\/api\/rooms\/([^/]+)(?:\/(ws|text|files|items|report)(?:\/([0-9a-f-]{36}))?)?$/i);
   if (!match) return error(404, 'not_found', 'Not found');
 
   const code = normalizeCode(match[1]);
@@ -237,10 +313,11 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
   const [, , action, id] = match;
 
   switch (`${method} ${action ?? ''}${id ? '/:id' : ''}`) {
-    case 'GET ':
-      return (await roomStub(env, code).exists())
-        ? json({ code })
-        : error(404, 'not_found', 'Room not found or expired.');
+    case 'GET ': {
+      const info = await roomStub(env, code).info();
+      if (!info) return error(404, 'not_found', 'Room not found or expired.');
+      return info.blocked ? roomError('room_blocked') : json({ code });
+    }
     case 'GET ws':
       if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
         return error(426, 'upgrade_required', 'WebSocket expected.');
@@ -254,6 +331,8 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
       return downloadFile(env, code, id!.toLowerCase());
     case 'DELETE items/:id':
       return deleteItem(request, env, code, id!.toLowerCase());
+    case 'POST report':
+      return report(request, env, ctx, code);
     default:
       return error(405, 'method_not_allowed', 'Method not allowed');
   }

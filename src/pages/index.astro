@@ -55,6 +55,9 @@ const featureIcons = ['live', 'file', 'lock', 'key', 'clock', 'code'] as const;
         <p class="error" id="error" role="alert" hidden></p>
         {turnstileSiteKey && <div id="turnstile-widget" class="turnstile" />}
         <p class="muted small note">{t.home.note}</p>
+        <p class="muted small note">
+          {t.legal.termsNoteBefore}<a href="/nutzungsbedingungen">{t.legal.terms}</a>{t.legal.termsNoteAfter}
+        </p>
       </div>
     </section>
 

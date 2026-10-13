@@ -15,8 +15,9 @@ const showLegal = LEGAL.ready || import.meta.env.DEV;
     {
       showLegal && (
         <>
-          <a href="/impressum">{lang === 'en' ? 'Legal notice' : 'Impressum'}</a>
-          <a href="/datenschutz">{lang === 'en' ? 'Privacy' : 'Datenschutz'}</a>
+          <a href="/nutzungsbedingungen">{t.legal.terms}</a>
+          <a href="/impressum">{t.legal.imprint}</a>
+          <a href="/datenschutz">{t.legal.privacy}</a>
         </>
       )
     }

@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { MAX_ITEMS, PENDING_TIMEOUT_MS, ROOM_MAX_LIFETIME_MS, ROOM_TTL_MS } from '../shared/limits';
+import { MAX_ITEMS, PENDING_TIMEOUT_MS, ROOM_FREEZE_MAX_MS, ROOM_MAX_LIFETIME_MS, ROOM_TTL_MS } from '../shared/limits';
 import type { QuotaError } from './quota';
 import type { Item, ItemKind, ServerMessage } from '../shared/types';
 
@@ -16,7 +16,8 @@ type ItemRow = {
 };
 
 /** wrong_mode: plaintext sent to an encrypted room (or the other way round) */
-export type RoomError = 'not_found' | 'room_full' | 'wrong_mode' | QuotaError;
+/** room_blocked: the operator (or a CSAM report) has blocked the room */
+export type RoomError = 'not_found' | 'room_full' | 'wrong_mode' | 'room_blocked' | QuotaError;
 export type Result<T> = { ok: true; value: T } | { ok: false; error: RoomError };
 
 function toItem(row: ItemRow, enc: boolean): Item {
@@ -130,8 +131,71 @@ export class Room extends DurableObject<Env> {
   }
 
   /** null if the room does not exist (any more). */
-  info(): { encrypted: boolean } | null {
-    return this.code ? { encrypted: this.encrypted } : null;
+  info(): { encrypted: boolean; blocked: boolean } | null {
+    return this.code ? { encrypted: this.encrypted, blocked: this.blocked } : null;
+  }
+
+  /** Blocked rooms keep their data (until they expire as usual) but serve nothing. */
+  private get blocked(): boolean {
+    return this.getMeta('blocked') === '1';
+  }
+
+  /** Overview for the moderation page. Never includes content. */
+  stats() {
+    if (!this.code) return null;
+    const row = this.sql
+      .exec<{ items: number; files: number; bytes: number | null }>(
+        `SELECT COUNT(*) AS items, SUM(kind = 'file') AS files, SUM(file_size) AS bytes FROM items`,
+      )
+      .one();
+    const lastActivity = Number(this.getMeta('last_activity'));
+    return {
+      encrypted: this.encrypted,
+      blocked: this.blocked,
+      blockedReason: this.getMeta('blocked_reason'),
+      frozenUntil: this.frozenUntil,
+      createdAt: Number(this.getMeta('created_at')),
+      lastActivity,
+      expiresAt: this.expiry(lastActivity),
+      items: row.items,
+      files: row.files ?? 0,
+      fileBytes: row.bytes ?? 0,
+      devices: this.ctx.getWebSockets().length,
+    };
+  }
+
+  /** Frozen rooms are kept (blocked) for the authorities until this time, instead of expiring. */
+  private get frozenUntil(): number | null {
+    const value = Number(this.getMeta('frozen_until') ?? 0);
+    return value > 0 ? value : null;
+  }
+
+  /**
+   * Operator actions:
+   * - block: nothing is served any more, every device is disconnected; the room still expires as usual
+   * - freeze: block and keep the data for up to 90 days (e.g. for a preservation order), ignoring expiry
+   * - unblock: back to normal, including normal expiry
+   * - delete: remove the room and its files right away
+   */
+  async moderate(action: 'block' | 'freeze' | 'unblock' | 'delete', reason = ''): Promise<boolean> {
+    if (!this.code) return false;
+    if (action === 'delete') {
+      await this.destroy(4410, 'Room deleted');
+      return true;
+    }
+    const blocking = action !== 'unblock';
+    this.setMeta('blocked', blocking ? '1' : '0');
+    this.setMeta('blocked_reason', blocking ? reason.slice(0, 200) : '');
+    if (action === 'freeze') {
+      const until = Date.now() + ROOM_FREEZE_MAX_MS;
+      this.setMeta('frozen_until', String(until));
+      await this.ctx.storage.setAlarm(until);
+    } else {
+      this.setMeta('frozen_until', '0');
+      await this.ctx.storage.setAlarm(this.expiry(Number(this.getMeta('last_activity'))));
+    }
+    if (blocking) this.closeAll(4451, 'Room blocked');
+    return true;
   }
 
   /**
@@ -143,6 +207,7 @@ export class Room extends DurableObject<Env> {
     ip: string,
   ): Promise<Result<Item>> {
     if (!this.code) return { ok: false, error: 'not_found' };
+    if (this.blocked) return { ok: false, error: 'room_blocked' };
     const isCipher = 'ciphertext' in payload;
     if (isCipher !== this.encrypted) return { ok: false, error: 'wrong_mode' };
     const content = isCipher ? payload.ciphertext : payload.text;
@@ -183,6 +248,7 @@ export class Room extends DurableObject<Env> {
   ): Promise<Result<{ id: string; r2Key: string }>> {
     const code = this.code;
     if (!code) return { ok: false, error: 'not_found' };
+    if (this.blocked) return { ok: false, error: 'room_blocked' };
     if (encrypted !== this.encrypted) return { ok: false, error: 'wrong_mode' };
     await this.cleanupStalePending();
     if (this.countItems() >= MAX_ITEMS) return { ok: false, error: 'room_full' };
@@ -228,7 +294,8 @@ export class Room extends DurableObject<Env> {
     await this.quota.releaseFile(row.file_size ?? 0);
   }
 
-  getFile(id: string): { r2Key: string; name: string; size: number; mime: string; encrypted: boolean } | null {
+  getFile(id: string): { r2Key: string; name: string; size: number; mime: string; encrypted: boolean } | 'blocked' | null {
+    if (this.blocked) return 'blocked';
     const row = this.getRow(id);
     if (!row || row.kind !== 'file' || row.status !== 'ready' || !row.r2_key) return null;
     return {
@@ -240,7 +307,8 @@ export class Room extends DurableObject<Env> {
     };
   }
 
-  async deleteItem(id: string): Promise<boolean> {
+  async deleteItem(id: string): Promise<boolean | 'blocked'> {
+    if (this.blocked) return 'blocked';
     const row = this.getRow(id);
     if (!row || row.status !== 'ready') return false;
     this.sql.exec('DELETE FROM items WHERE id = ?', id);
@@ -259,6 +327,7 @@ export class Room extends DurableObject<Env> {
       return new Response('Expected WebSocket', { status: 426 });
     }
     if (!this.code) return new Response('Room not found', { status: 404 });
+    if (this.blocked) return new Response('Room blocked', { status: 451 });
 
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
@@ -301,13 +370,24 @@ export class Room extends DurableObject<Env> {
   // ---------- Alarm: delete the room after 24 h of inactivity ----------
 
   async alarm() {
+    // Frozen for the authorities: keep until the freeze ends
+    const frozenUntil = this.frozenUntil;
+    if (frozenUntil && Date.now() < frozenUntil) {
+      await this.ctx.storage.setAlarm(frozenUntil);
+      return;
+    }
     const lastActivity = Number(this.getMeta('last_activity') ?? 0);
-    if (lastActivity && Date.now() < this.expiry(lastActivity)) {
+    if (!frozenUntil && lastActivity && Date.now() < this.expiry(lastActivity)) {
       // Activity in the meantime: reschedule
       await this.ctx.storage.setAlarm(this.expiry(lastActivity));
       return;
     }
 
+    await this.destroy(4404, 'Room expired');
+  }
+
+  /** Deletes all files, frees their quota, disconnects everyone and wipes the room's storage. */
+  private async destroy(closeCode: number, closeReason: string) {
     const code = this.code;
     if (code) {
       const stored = this.sql
@@ -316,17 +396,20 @@ export class Room extends DurableObject<Env> {
       await this.deleteR2Prefix(`rooms/${code}/`);
       if (stored) await this.quota.releaseFile(stored);
     }
+    this.closeAll(closeCode, closeReason);
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.hasSchema = false;
+  }
 
+  private closeAll(closeCode: number, closeReason: string) {
     for (const ws of this.ctx.getWebSockets()) {
       try {
-        ws.close(4404, 'Room expired');
+        ws.close(closeCode, closeReason);
       } catch {
         // ignore
       }
     }
-    await this.ctx.storage.deleteAlarm();
-    await this.ctx.storage.deleteAll();
-    this.hasSchema = false;
   }
 
   // ---------- Helpers ----------

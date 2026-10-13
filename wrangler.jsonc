@@ -14,13 +14,19 @@
   "durable_objects": {
     "bindings": [
       { "name": "ROOM", "class_name": "Room" },
-      { "name": "QUOTA", "class_name": "Quota" }
+      { "name": "QUOTA", "class_name": "Quota" },
+      { "name": "MODERATION", "class_name": "Moderation" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Room"] },
-    { "tag": "v2", "new_sqlite_classes": ["Quota"] }
+    { "tag": "v2", "new_sqlite_classes": ["Quota"] },
+    { "tag": "v3", "new_sqlite_classes": ["Moderation"] }
   ],
+
+  // Report notifications via Cloudflare Email Routing. Only verified destination addresses
+  // can receive mail; the recipient comes from the REPORT_TO secret, not from this file.
+  "send_email": [{ "name": "REPORT_MAIL" }],
 
   // Files. EU jurisdiction: data stays in the EU
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files", "jurisdiction": "eu" }],
@@ -58,9 +64,11 @@
     "durable_objects": {
       "bindings": [
         { "name": "ROOM", "class_name": "Room" },
-        { "name": "QUOTA", "class_name": "Quota" }
+        { "name": "QUOTA", "class_name": "Quota" },
+        { "name": "MODERATION", "class_name": "Moderation" }
       ]
     },
+    "send_email": [{ "name": "REPORT_MAIL" }],
     "r2_buckets": [{ "binding": "FILES", "bucket_name": "tee-files-preview", "jurisdiction": "eu" }],
     "ratelimits": [
       {

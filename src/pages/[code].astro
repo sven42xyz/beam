@@ -6,6 +6,7 @@ import SiteHeader from '../components/SiteHeader.astro';
 import { useTranslations } from '../i18n';
 import { normalizeCode } from '../shared/codes';
 import { MAX_FILE_BYTES, MAX_ITEMS } from '../shared/limits';
+import { REPORT_CATEGORIES, REPORT_CONTACT_MAX, REPORT_DESCRIPTION_MAX } from '../shared/moderation';
 
 const { lang } = Astro.locals;
 const t = useTranslations(lang);
@@ -17,14 +18,32 @@ if (code && code !== raw) return Astro.redirect(`/${code}`, 301);
 
 const info = code ? await env.ROOM.get(env.ROOM.idFromName(code)).info() : null;
 const exists = info !== null;
+const blocked = info?.blocked ?? false;
 const encrypted = info?.encrypted ?? false;
 if (!exists) Astro.response.status = 404;
+// 451 Unavailable For Legal Reasons
+else if (blocked) Astro.response.status = 451;
 Astro.response.headers.set('Cache-Control', 'no-store');
 ---
 
-<Base title={exists ? `tee · ${code}` : `tee · ${t.room.titleNotFound}`} noindex>
+<Base title={exists && !blocked ? `tee · ${code}` : blocked ? `tee · ${t.room.blockedTitle}` : `tee · ${t.room.titleNotFound}`} noindex>
   {
-    !exists ? (
+    blocked ? (
+      <>
+        <SiteHeader />
+        <main class="notfound" id="main">
+          <h1>{t.room.blockedTitle}</h1>
+          <p class="muted">{t.room.blockedText}</p>
+          <p>
+            <a href="/nutzungsbedingungen">{t.legal.terms}</a>
+          </p>
+          <a class="btn btn-primary" href="/">
+            {t.room.toHome}
+          </a>
+        </main>
+        <SiteFooter />
+      </>
+    ) : !exists ? (
       <>
         <SiteHeader />
         <main class="notfound" id="main">
@@ -115,6 +134,58 @@ Astro.response.headers.set('Cache-Control', 'no-store');
         </p>
         </div>
         <p class="muted small expiry" id="expiry" />
+        <p class="report-link">
+          <button type="button" class="link-button" id="report-open">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h11l-1 4h6v9H9l1-4H4" /></svg>
+            {t.room.report}
+          </button>
+        </p>
+
+        <dialog class="report-dialog" id="report-dialog" aria-labelledby="report-title">
+          <form id="report-form" method="dialog">
+            <h2 id="report-title">{t.room.reportTitle}</h2>
+            <p class="muted small">{t.room.reportIntro}</p>
+
+            <label for="report-category">{t.room.reportCategory}</label>
+            <select id="report-category" required>
+              {/* No default: a CSAM report blocks the room, so it must be a deliberate choice */}
+              <option value="" disabled selected>
+                {t.room.reportChoose}
+              </option>
+              {REPORT_CATEGORIES.map((c) => <option value={c}>{t.room.reportCategories[c]}</option>)}
+            </select>
+
+            <label for="report-item">{t.room.reportItem}</label>
+            <select id="report-item">
+              <option value="">{t.room.reportItemAll}</option>
+            </select>
+
+            <label for="report-description">{t.room.reportDescription}</label>
+            <textarea id="report-description" rows="4" minlength="5" maxlength={REPORT_DESCRIPTION_MAX} required placeholder={t.room.reportDescriptionHint} />
+
+            <label for="report-contact">{t.room.reportContact}</label>
+            <input id="report-contact" type="email" maxlength={REPORT_CONTACT_MAX} autocomplete="email" />
+
+            <label class="checkbox">
+              <input type="checkbox" id="report-goodfaith" required />
+              <span>{t.room.reportGoodFaith}</span>
+            </label>
+
+            <p class="error small" id="report-error" role="alert" hidden />
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-small btn-ghost" id="report-cancel">{t.room.reportCancel}</button>
+              <button type="submit" class="btn btn-small btn-primary" id="report-submit">{t.room.reportSubmit}</button>
+            </div>
+          </form>
+          <div id="report-done" hidden>
+            <h2>{t.room.reportTitle}</h2>
+            <p id="report-done-text" role="status" />
+            <p class="muted small" id="report-done-csam" hidden>{t.room.reportCsamHint}</p>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-small btn-primary" id="report-close">{t.room.reportClose}</button>
+            </div>
+          </div>
+        </dialog>
 
         <div class="dropzone" id="dropzone" hidden>
           <div>{t.room.dropzone}</div>
@@ -198,6 +269,90 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     display: flex;
     flex-direction: column;
     gap: 14px;
+  }
+  .report-link {
+    text-align: center;
+    margin: 0;
+  }
+  .link-button {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    min-height: 24px;
+  }
+  .link-button:hover {
+    color: var(--text);
+  }
+  .link-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .report-dialog {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .report-dialog::backdrop {
+    background: color-mix(in srgb, var(--bg) 75%, transparent);
+    backdrop-filter: blur(3px);
+  }
+  .report-dialog h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+  }
+  .report-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .report-dialog label {
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .report-dialog select,
+  .report-dialog textarea,
+  .report-dialog input[type='email'] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--field-border);
+    border-radius: 10px;
+    background: var(--bg);
+    font: inherit;
+  }
+  .report-dialog .checkbox {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-weight: 400;
+  }
+  .report-dialog .checkbox input {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex: none;
+  }
+  .report-dialog .error {
+    color: var(--danger);
+    margin: 4px 0 0;
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
   }
   .enc-badge {
     display: inline-flex;
@@ -397,7 +552,12 @@ Astro.response.headers.set('Cache-Control', 'no-store');
 </style>
 
 <script>
+  import { isLang, useTranslations } from '../i18n';
+  import { initReport } from '../scripts/report-client';
   import { initRoom } from '../scripts/room-client';
   const el = document.getElementById('main');
-  if (el) initRoom(el);
+  if (el?.dataset.code) {
+    initReport(el.dataset.code, useTranslations(isLang(el.dataset.lang) ? el.dataset.lang : 'en'));
+    initRoom(el);
+  }
 </script>

@@ -1,0 +1,198 @@
+---
+import { env } from 'cloudflare:workers';
+import Base from '../../layouts/Base.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import { normalizeCode } from '../../shared/codes';
+import { moderationStub, verifyAdmin } from '../../server/moderation';
+
+/*
+ * Moderation page for one room, opened from the signed link in a report email.
+ * It never shows content, only metadata and the reports. Actions are POSTed by
+ * the buttons below, so mail scanners that prefetch links cannot trigger them.
+ * The page is for the operator only, so it is German-only.
+ */
+const code = normalizeCode(Astro.params.code ?? '');
+const exp = Number(Astro.url.searchParams.get('exp'));
+const sig = Astro.url.searchParams.get('sig') ?? '';
+const valid = code ? await verifyAdmin(env, code, exp, sig) : false;
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+// The signature is in the URL: never send it along as a referrer
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+if (!valid) Astro.response.status = 403;
+
+const stats = valid ? await env.ROOM.get(env.ROOM.idFromName(code!)).stats() : null;
+const reports = valid ? await moderationStub(env).reportsFor(code!) : [];
+
+const fmt = (ts: number) => new Date(ts).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
+const mb = (bytes: number) => `${(bytes / 1e6).toFixed(1)} MB`;
+const categories: Record<string, string> = {
+  csam: 'Missbrauchsdarstellung',
+  violence: 'Gewalt, Terror, Hass',
+  copyright: 'Urheberrecht',
+  malware: 'Schadsoftware/Phishing',
+  personal: 'Persönliche Daten',
+  other: 'Sonstiges',
+};
+---
+
+<Base title={`Moderation · ${code ?? ''}`} noindex>
+  <SiteHeader />
+  <main class="admin" id="main" data-code={code} data-exp={exp} data-sig={sig}>
+    {
+      !valid ? (
+        <>
+          <h1>Link ungültig oder abgelaufen</h1>
+          <p class="muted">Moderations-Links gelten 14 Tage. Eine neue Meldung erzeugt einen neuen Link.</p>
+        </>
+      ) : !stats ? (
+        <>
+          <h1>Raum {code}</h1>
+          <p class="muted">Diesen Raum gibt es nicht (mehr). Er ist abgelaufen oder wurde gelöscht.</p>
+        </>
+      ) : (
+        <>
+          <h1>Raum {code}</h1>
+          <dl class="facts">
+            <dt>Status</dt>
+            <dd>
+              {stats.frozenUntil
+                ? `Eingefroren bis ${fmt(stats.frozenUntil)}`
+                : stats.blocked
+                  ? `Gesperrt${stats.blockedReason ? ` (${stats.blockedReason})` : ''}`
+                  : 'Erreichbar'}
+            </dd>
+            <dt>Verschlüsselung</dt>
+            <dd>{stats.encrypted ? 'Ende-zu-Ende verschlüsselt (Inhalt nicht lesbar)' : 'unverschlüsselt'}</dd>
+            <dt>Einträge</dt>
+            <dd>
+              {stats.items} ({stats.files} Dateien, {mb(stats.fileBytes)})
+            </dd>
+            <dt>Geräte verbunden</dt>
+            <dd>{stats.devices}</dd>
+            <dt>Erstellt</dt>
+            <dd>{fmt(stats.createdAt)}</dd>
+            <dt>Letzte Aktivität</dt>
+            <dd>{fmt(stats.lastActivity)}</dd>
+            <dt>Automatische Löschung</dt>
+            <dd>{fmt(stats.frozenUntil ?? stats.expiresAt)}</dd>
+          </dl>
+
+          <div class="actions">
+            {stats.blocked ? (
+              <button class="btn" data-action="unblock">Entsperren</button>
+            ) : (
+              <button class="btn" data-action="block">Sperren</button>
+            )}
+            {!stats.frozenUntil && (
+              <button class="btn" data-action="freeze">Einfrieren (90 Tage, für Behörden)</button>
+            )}
+            <button class="btn btn-danger" data-action="delete">Endgültig löschen</button>
+          </div>
+          <p class="muted small" id="result" role="status" />
+          <p class="muted small">
+            Sperren: nichts mehr abrufbar, Raum läuft normal ab. Einfrieren: gesperrt und bis zu 90 Tage aufbewahrt, z. B. für
+            eine Sicherungsanordnung. Löschen: Raum und Dateien sofort weg.
+          </p>
+        </>
+      )
+    }
+
+    {
+      valid && (
+        <section class="reports">
+          <h2>Meldungen ({reports.length})</h2>
+          {reports.length === 0 && <p class="muted">Keine gespeicherten Meldungen.</p>}
+          {reports.map((r) => (
+            <article class="report">
+              <p class="report-head">
+                <strong>{categories[r.category] ?? r.category}</strong> · {fmt(r.createdAt)}
+                {r.autoBlocked && ' · automatisch gesperrt'}
+              </p>
+              <p class="report-text">{r.description}</p>
+              <p class="muted small">
+                Eintrag: {r.itemId ?? 'nicht angegeben'} · Kontakt: {r.contact ?? 'anonym'} · ID: {r.id}
+              </p>
+            </article>
+          ))}
+        </section>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .admin {
+    max-width: 720px;
+    padding-top: 16px;
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 16px;
+    margin: 16px 0 24px;
+  }
+  .facts dt {
+    color: var(--muted);
+  }
+  .facts dd {
+    margin: 0;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .btn-danger {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .small {
+    font-size: 13px;
+  }
+  .reports {
+    margin-top: 36px;
+  }
+  .report {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--surface);
+  }
+  .report p {
+    margin: 0 0 6px;
+  }
+  .report-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+</style>
+
+<script>
+  const root = document.getElementById('main')!;
+  const result = document.getElementById('result');
+  const confirmText: Record<string, string> = {
+    block: 'Raum sperren? Alle Geräte werden getrennt.',
+    unblock: 'Raum wieder freigeben?',
+    freeze: 'Raum sperren und bis zu 90 Tage aufbewahren?',
+    delete: 'Raum und alle Dateien endgültig löschen? Das lässt sich nicht rückgängig machen.',
+  };
+  document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.action!;
+      if (!confirm(confirmText[action])) return;
+      btn.disabled = true;
+      const res = await fetch(`/api/admin/rooms/${root.dataset.code}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, exp: Number(root.dataset.exp), sig: root.dataset.sig }),
+      });
+      if (res.ok) location.reload();
+      else {
+        btn.disabled = false;
+        if (result) result.textContent = `Fehler ${res.status}: ${((await res.json()) as { message?: string }).message ?? ''}`;
+      }
+    }),
+  );
+</script>

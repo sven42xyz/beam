@@ -50,6 +50,16 @@ Rooms are end-to-end encrypted by default (`src/scripts/crypto.ts`, Web Crypto, 
 
 > Web Crypto is only available in secure contexts (HTTPS, `localhost`). When testing over `http://<LAN-IP>`, encrypted rooms therefore do not work; unencrypted ones do.
 
+### Moderation (reports, blocking, deletion)
+
+Runbook: [docs/abuse.md](docs/abuse.md).
+
+- Every room has **"Report content"** (also on the lock screen of encrypted rooms). Reports are stored in the `Moderation` Durable Object (180 days) and emailed to the operator via the `send_email` binding (Email Routing).
+- **CSAM reports block the room immediately**, before anyone has reviewed them.
+- The email contains a **signed moderation link** (HMAC with `ADMIN_SECRET`, valid 14 days) to `/admin/<CODE>`: metadata and reports, never content, plus the actions block, freeze (keep up to 90 days for the authorities), unblock and delete.
+- Blocked rooms return `451` everywhere and disconnect all devices.
+- Terms of use: `/nutzungsbedingungen`.
+
 ### API
 
 | Method & path | Purpose |
@@ -61,6 +71,8 @@ Rooms are end-to-end encrypted by default (`src/scripts/crypto.ts`, Web Crypto, 
 | `POST /api/rooms/:code/files` | Raw body. Plain: headers `X-Filename` (URL-encoded) and `Content-Type`. Encrypted: `X-Encrypted: 1`, `X-Filename` = encrypted metadata |
 | `GET /api/rooms/:code/files/:id` | Download (`Content-Disposition: attachment`) |
 | `DELETE /api/rooms/:code/items/:id` | Delete an item |
+| `POST /api/rooms/:code/report` | `{ category, description, contact?, itemId?, goodFaith: true }` → `{ id, blocked }` |
+| `POST /api/admin/rooms/:code` | `{ action: block\|freeze\|unblock\|delete, exp, sig }` (signed link from the report email) |
 
 WebSocket messages (server → client): `init`, `item`, `delete`, `devices`. See `src/shared/types.ts`.
 
@@ -90,8 +102,9 @@ src/
 ├─ middleware.ts          Language detection (cookie / Accept-Language / ?lang=)
 ├─ server/
 │  ├─ api.ts              API routes, validation, rate limiting, Turnstile, R2 streaming
-│  ├─ room.ts             Durable Object per room (SQLite, WebSockets, alarm)
-│  └─ quota.ts            Durable Object enforcing storage and upload limits
+│  ├─ room.ts             Durable Object per room (SQLite, WebSockets, alarm, block/freeze)
+│  ├─ quota.ts            Durable Object enforcing storage and upload limits
+│  └─ moderation.ts       Durable Object for reports, signed admin links, report emails
 ├─ shared/                Code shared by client and server
 │  ├─ codes.ts            Room code generation / validation
 │  ├─ limits.ts           Limits & TTL
@@ -102,17 +115,21 @@ src/
 ├─ pages/
 │  ├─ index.astro         Landing page
 │  ├─ [code].astro        Room view (404 for unknown codes, noindex)
+│  ├─ admin/[code].astro  Moderation page (signed link only)
+│  ├─ nutzungsbedingungen.astro  Terms of use
 │  ├─ impressum.astro     Legal notice
 │  └─ datenschutz.astro   Privacy policy
 ├─ scripts/
 │  ├─ room-client.ts      WebSocket, reconnect, uploads with progress, drag & drop, decryption
 │  ├─ crypto.ts           End-to-end encryption (keys, texts, chunked files)
+│  ├─ report-client.ts    "Report content" dialog
 │  ├─ turnstile.ts        Turnstile widget (explicit rendering)
 │  └─ ui.ts               Toast, clipboard
 ├─ components/            SiteHeader, SiteFooter, Logo, LangSwitch, TransferScene (animation)
 ├─ layouts/               Base, LegalPage
 └─ styles/global.css      Color tokens, light/dark mode, base styles
 og/                       Template and render script for the social preview images
+docs/abuse.md             Runbook for reports and illegal content
 ```
 
 ## Setup
@@ -200,6 +217,15 @@ npx wrangler turnstile widget create "tee Raumerstellung" \
 
 For another custom domain, add it to the widget with `wrangler turnstile widget update <sitekey> --domain …`.
 While either key is missing, Turnstile stays off. Rate limiting still applies.
+
+### Moderation secrets
+
+```sh
+openssl rand -base64 32 | npx wrangler secret put ADMIN_SECRET   # HMAC key for moderation links
+npx wrangler secret put REPORT_TO                                # verified Email Routing destination
+```
+
+Set both for the preview as well (`npx wrangler preview secret put … --name main`).
 
 ### Previews
 

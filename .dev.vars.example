@@ -2,3 +2,8 @@
 # https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+
+# Moderation: HMAC key for the signed admin links in report emails, and where reports go.
+# Production: wrangler secret put ADMIN_SECRET / REPORT_TO (never commit real values).
+ADMIN_SECRET=dev-only-admin-secret-change-me
+REPORT_TO=you@example.com

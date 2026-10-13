@@ -6,6 +6,9 @@ export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 /** ... and at the latest this long after creation, even if they stay active. */
 export const ROOM_MAX_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Frozen rooms (blocked and kept for the authorities) are deleted after this at the latest. */
+export const ROOM_FREEZE_MAX_MS = 90 * 24 * 60 * 60 * 1000;
+
 /**
  * Cost ceiling: total size of all stored files (R2). Uploads beyond this are rejected.
  * At $0.015/GB-month this caps storage at well under $1/month.

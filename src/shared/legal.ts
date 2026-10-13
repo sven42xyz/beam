@@ -20,5 +20,7 @@ export const LEGAL = {
     url: 'https://www.ldi.nrw.de',
   },
   /** Date of the current privacy policy */
-  updated: '2026-10-10',
+  updated: '2026-10-13',
+  /** Date of the current terms of use */
+  termsUpdated: '2026-10-13',
 };

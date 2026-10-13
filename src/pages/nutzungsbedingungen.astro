@@ -1,0 +1,119 @@
+---
+import LegalPage from '../layouts/LegalPage.astro';
+import { LEGAL } from '../shared/legal';
+import { IP_DAILY_UPLOAD_BYTES, MAX_FILE_BYTES, MAX_ITEMS } from '../shared/limits';
+
+const { lang } = Astro.locals;
+const en = lang === 'en';
+const updated = new Date(LEGAL.termsUpdated).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
+const maxMb = MAX_FILE_BYTES / 1024 / 1024;
+const dailyGb = IP_DAILY_UPLOAD_BYTES / 1000 ** 3;
+---
+
+<LegalPage title={en ? 'Terms of use' : 'Nutzungsbedingungen'}>
+  {
+    en ? (
+      <>
+        <h1>Terms of use</h1>
+        <p class="lead">As of {updated}. The German version is legally binding.</p>
+
+        <h2>1. What tee is</h2>
+        <p>
+          tee is a free service for temporarily exchanging text, links and files between devices. The provider is named in the <a href="/impressum">legal notice</a>. By creating or using a room you accept these terms.
+        </p>
+
+        <h2>2. Prohibited content</h2>
+        <p>You must not store or share any content through tee that is illegal or infringes the rights of others, in particular:</p>
+        <ul>
+          <li>depictions of the sexual abuse of children or young people, and any sexualised depiction of minors</li>
+          <li>content that calls for, glorifies or supports violence or terrorism; incitement to hatred; symbols of unconstitutional organisations</li>
+          <li>copyrighted works without permission</li>
+          <li>malware, phishing or other content intended to harm systems or people</li>
+          <li>other people's personal data without their consent (e.g. doxing), and images that violate someone's most private sphere</li>
+          <li>threats, insults and defamation</li>
+        </ul>
+
+        <h2>3. Encrypted rooms</h2>
+        <p>
+          The content of end-to-end encrypted rooms cannot be read by the provider. The rules above apply all the same: you are responsible for the content you share.
+        </p>
+
+        <h2>4. Reporting content</h2>
+        <p>
+          Every room has a "Report content" function, which also works anonymously. Alternatively, write to <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>. Reports of child sexual abuse material block the room immediately, before anyone has reviewed it.
+        </p>
+
+        <h2>5. Measures against violations</h2>
+        <p>
+          If there are indications of a violation, the provider may block, preserve or delete rooms without prior notice, and pass information about criminal offences to the law enforcement authorities. Orders from authorities are complied with.
+        </p>
+
+        <h2>6. Limits and availability</h2>
+        <p>
+          Files can be up to {maxMb} MB, a room holds up to {MAX_ITEMS} items, and the upload volume is limited to {dailyGb} GB per network and day. Rooms are deleted 24 hours after the last activity and at the latest 7 days after creation. There is no right to availability and no backup: tee is not a place to keep data.
+        </p>
+
+        <h2>7. Liability</h2>
+        <p>
+          tee is provided free of charge. The provider is liable only for intent and gross negligence, and for injury to life, body or health.
+        </p>
+
+        <h2>8. Changes and applicable law</h2>
+        <p>
+          These terms may be changed; the version published here applies. German law applies, without prejudice to mandatory consumer protection rules of your country of residence.
+        </p>
+      </>
+    ) : (
+      <>
+        <h1>Nutzungsbedingungen</h1>
+        <p class="lead">Stand: {updated}</p>
+
+        <h2>1. Was tee ist</h2>
+        <p>
+          tee ist ein kostenloser Dienst, um Texte, Links und Dateien vorübergehend zwischen Geräten auszutauschen. Anbieter ist die im <a href="/impressum">Impressum</a> genannte Person. Wer einen Raum erstellt oder nutzt, akzeptiert diese Bedingungen.
+        </p>
+
+        <h2>2. Verbotene Inhalte</h2>
+        <p>Über tee dürfen keine Inhalte gespeichert oder geteilt werden, die gegen geltendes Recht verstoßen oder Rechte anderer verletzen, insbesondere:</p>
+        <ul>
+          <li>Darstellungen sexuellen Missbrauchs von Kindern oder Jugendlichen sowie jede sexualisierte Darstellung Minderjähriger</li>
+          <li>Inhalte, die zu Gewalt oder Terrorismus aufrufen, sie verherrlichen oder unterstützen; Volksverhetzung; Kennzeichen verfassungswidriger Organisationen</li>
+          <li>urheberrechtlich geschützte Werke ohne Berechtigung</li>
+          <li>Schadsoftware, Phishing oder andere Inhalte, die Systemen oder Menschen schaden sollen</li>
+          <li>personenbezogene Daten anderer ohne deren Einwilligung (z. B. Doxing) sowie Bildaufnahmen, die den höchstpersönlichen Lebensbereich verletzen</li>
+          <li>Bedrohungen, Beleidigungen und Verleumdungen</li>
+        </ul>
+
+        <h2>3. Verschlüsselte Räume</h2>
+        <p>
+          Inhalte in Ende-zu-Ende verschlüsselten Räumen kann der Anbieter nicht lesen. An den Regeln oben ändert das nichts: Für geteilte Inhalte bist du selbst verantwortlich.
+        </p>
+
+        <h2>4. Inhalte melden</h2>
+        <p>
+          In jedem Raum gibt es die Funktion „Inhalt melden“, auch anonym. Alternativ per E-Mail an <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>. Meldungen zu Darstellungen sexuellen Missbrauchs von Kindern sperren den Raum sofort, noch bevor jemand sie geprüft hat.
+        </p>
+
+        <h2>5. Maßnahmen bei Verstößen</h2>
+        <p>
+          Bei Hinweisen auf Verstöße kann der Anbieter Räume ohne Vorankündigung sperren, aufbewahren oder löschen und Hinweise auf Straftaten an die Strafverfolgungsbehörden weitergeben. Behördliche Anordnungen werden befolgt.
+        </p>
+
+        <h2>6. Grenzen und Verfügbarkeit</h2>
+        <p>
+          Dateien dürfen bis zu {maxMb} MB groß sein, ein Raum fasst bis zu {MAX_ITEMS} Einträge, und das Upload-Volumen ist auf {dailyGb} GB pro Netz und Tag begrenzt. Räume werden 24 Stunden nach der letzten Aktivität gelöscht, spätestens 7 Tage nach dem Erstellen. Es gibt keinen Anspruch auf Verfügbarkeit und keine Datensicherung: tee ist kein Speicherort.
+        </p>
+
+        <h2>7. Haftung</h2>
+        <p>
+          tee wird unentgeltlich bereitgestellt. Der Anbieter haftet nur für Vorsatz und grobe Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit.
+        </p>
+
+        <h2>8. Änderungen und anwendbares Recht</h2>
+        <p>
+          Diese Bedingungen können geändert werden; es gilt die hier veröffentlichte Fassung. Es gilt deutsches Recht, zwingende Verbraucherschutzvorschriften deines Wohnsitzlandes bleiben unberührt.
+        </p>
+      </>
+    )
+  }
+</LegalPage>
